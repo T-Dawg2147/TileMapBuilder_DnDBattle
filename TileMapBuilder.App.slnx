@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="DnDBattle.Data/DnDBattle.Data.csproj" Id="2e3ac0e8-1566-4dbb-b03b-093d5cfd942b" />
+  <Project Path="TileMapBuilder.App/TileMapBuilder.App.csproj" />
+  <Project Path="TileMapBuilder.Core/TileMapBuilder.Core.csproj" />
+</Solution>

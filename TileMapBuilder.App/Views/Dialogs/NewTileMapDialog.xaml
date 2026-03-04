@@ -1,0 +1,114 @@
+﻿<Window x:Class="TileMapBuilder.App.Views.Dialogs.NewTileMapDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:TileMapBuilder.App.Views.Dialogs"
+        Title="{Binding DialogTitle}"
+        SizeToContent="Height"
+        Width="450"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+
+    <Window.Style>
+        <!-- Bind DialogResult to close the window automatically -->
+        <Style TargetType="Window">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DialogResult}" Value="True">
+                    <Setter Property="Tag" Value="CloseWindow" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DialogResult}" Value="False">
+                    <Setter Property="Tag" Value="CloseWindow" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Style>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <!-- Name -->
+            <RowDefinition Height="Auto" />
+            <!-- File Location -->
+            <RowDefinition Height="Auto" />
+            <!-- Dimensions -->
+            <RowDefinition Height="Auto" />
+            <!-- Additional Fields -->
+            <RowDefinition Height="Auto" />
+            <!-- Buttons -->
+        </Grid.RowDefinitions>
+
+        <!-- ── Name ─��────────────────────────────────────────── -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="Name" FontWeight="SemiBold" Margin="0,0,0,4" />
+            <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                     Padding="4" />
+        </StackPanel>
+
+        <!-- ── File Location ─────────────────────────────────── -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,12">
+            <TextBlock Text="File Location" FontWeight="SemiBold" Margin="0,0,0,4" />
+            <DockPanel>
+                <Button Content="Browse…"
+                        DockPanel.Dock="Right"
+                        Command="{Binding BrowseFolderCommand}"
+                        Padding="8,4"
+                        Margin="8,0,0,0" />
+                <TextBox Text="{Binding FileLocation, UpdateSourceTrigger=PropertyChanged}"
+                         Padding="4" />
+            </DockPanel>
+        </StackPanel>
+
+        <!-- ── Width / Height (conditional) ──────────────────── -->
+        <StackPanel Grid.Row="2" Margin="0,0,0,12"
+                    Visibility="{Binding ShowDimensions,
+                                 Converter={StaticResource BoolToVisibility}}">
+            <TextBlock Text="Dimensions" FontWeight="SemiBold" Margin="0,0,0,4" />
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Width:" VerticalAlignment="Center" Margin="0,0,6,0" />
+                <TextBox Text="{Binding Width, UpdateSourceTrigger=PropertyChanged}"
+                         Width="80" Padding="4" />
+                <TextBlock Text="Height:" VerticalAlignment="Center" Margin="16,0,6,0" />
+                <TextBox Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}"
+                         Width="80" Padding="4" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- ── Additional dynamic fields ─────────────────────── -->
+        <ItemsControl Grid.Row="3"
+                      ItemsSource="{Binding AdditionalFields}"
+                      Visibility="{Binding HasAdditionalFields,
+                                   Converter={StaticResource BoolToVisibility}}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Margin="0,0,0,12">
+                        <TextBlock FontWeight="SemiBold" Margin="0,0,0,4">
+                            <Run Text="{Binding Label, Mode=OneTime}" />
+                            <Run Text="{Binding IsRequired,
+                                        Mode=OneTime,
+                                        StringFormat='{}({0})',
+                                        Converter={StaticResource RequiredLabel}}"
+                                 Foreground="Gray" FontSize="11" />
+                        </TextBlock>
+                        <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                                 Padding="4" />
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- ── Buttons ───────────────────────────────────────── -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Margin="0,8,0,0">
+            <Button Content="OK"
+                    Command="{Binding ConfirmCommand}"
+                    IsDefault="True"
+                    Width="80" Padding="4,6"
+                    Margin="0,0,8,0" />
+            <Button Content="Cancel"
+                    Command="{Binding CancelCommand}"
+                    IsCancel="True"
+                    Width="80" Padding="4,6" />
+        </StackPanel>
+    </Grid>
+</Window>
