@@ -9,7 +9,7 @@ namespace TileMapBuilder.Core.Services.Interfaces
 {
     public interface ITileMapService
     {
-        Task<bool> SaveMapAsync(TileMap map, string filePath);
+        Task<bool?> SaveMapAsync(TileMap map, string filePath);
 
         Task<TileMap> LoadMapAsync(string filePath);
     }

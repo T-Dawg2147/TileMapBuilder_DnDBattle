@@ -5,7 +5,7 @@ namespace TileMapBuilder.App.Services
 {
     public sealed class ViewModelFactory : IViewModelFactory
     {
-        public readonly IServiceProvider _provider;
+        private readonly IServiceProvider _provider;
 
         public ViewModelFactory(IServiceProvider provider)
         {

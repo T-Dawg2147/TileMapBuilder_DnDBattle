@@ -25,6 +25,6 @@ namespace TileMapBuilder.Core.Services.Interfaces
 
         void ShowInfo(string title, string message, MessageBoxImage image = MessageBoxImage.Information);
 
-        public bool Confirm(string title, string message);
+        public bool ShowConfirm(string title, string message);
     }
 }

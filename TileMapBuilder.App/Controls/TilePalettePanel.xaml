@@ -16,9 +16,9 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <StackPanel Grid.Row="0" Background="{StaticResource Brush_Background_Control}" Margin="0,0,0,5">
+        <StackPanel Grid.Row="0" Background="{StaticResource Brush_Background_Control}" Margin="0,0,0,5" Orientation="Horizontal">
             <TextBlock Text="🎨 Tile Palette" FontSize="14" FontWeight="Bold" Margin="10,8"/>
-            <Button Content="🔄 Refresh Library" Click="RefreshLibrary_Click" 
+            <Button Content="🔄 Refresh Library" Command="{Binding RefreshLibraryCommand}" 
                     Margin="5" Padding="5" Style="{StaticResource ToolbarButton}" 
                     HorizontalAlignment="Stretch"/>
             <Button Content="➕ Import Tiles..." Click="ImportTiles_Click" 

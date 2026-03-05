@@ -9,12 +9,12 @@ namespace DnDBattle.Data.Services
 {
     public class UndoManager
     {
-        private static readonly Stack<IUndoableAction> _undo = [];
-        private static readonly Stack<IUndoableAction> _redo = [];
+        private readonly Stack<IUndoableAction> _undo = [];
+        private readonly Stack<IUndoableAction> _redo = [];
 
-        public static event EventHandler StateChanged;
+        public event EventHandler? StateChanged;
 
-        public static readonly int Limit = 100;
+        public readonly int Limit = 100;
 
         public bool CanUndo => _undo.Count > 0;
         public bool CanRedo => _redo.Count > 0;

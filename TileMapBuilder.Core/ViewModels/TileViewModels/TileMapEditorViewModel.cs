@@ -13,6 +13,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         private readonly ITileMapService _mapService;
         private readonly IDialogService _dialogService;
         private readonly IMapVisualProvider _mapVisualProvider;
+        private readonly IImageExportService _imageExportService;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(WindowTitle))]
@@ -25,11 +26,16 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         private readonly string _searchPattern = "*.jpg;*.jpeg;*.png;*.bmp";
         [ObservableProperty] private string _currentFilePath = string.Empty;
 
-        public TileMapEditorViewModel(ITileMapService mapService, IDialogService dialogService, IMapVisualProvider mapVisualProvider)
+        public TileMapEditorViewModel(
+            ITileMapService mapService,
+            IDialogService dialogService,
+            IMapVisualProvider mapVisualProvider,
+            IImageExportService imageExportService)
         {
             _dialogService = dialogService;
             _mapService = mapService;
             _mapVisualProvider = mapVisualProvider;
+            _imageExportService = imageExportService;
 
             var tileResources = Path.Combine(AppContext.BaseDirectory, "Resources", "Tiles");
             if (!Directory.Exists(tileResources))
@@ -112,7 +118,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             if (filePath != null)
             {
                 CurrentFilePath = filePath;
-                bool success = (await _mapService.SaveMapAsync(_currentMap, _currentFilePath)) != null;
+                bool success = (await _mapService.SaveMapAsync(CurrentMap, CurrentFilePath)) != null;
 
                 // TODO This is a very basic implementation.
                 // I would eventually like to be able to write this data to a temp file first to avoid corruptions in the primary file
@@ -135,7 +141,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             var filePath = _dialogService.ShowSaveFileDialog(
                 "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg",
                 "Export Map as Image",
-                CurrentMap.Name + "png");
+                CurrentMap.Name + ".png");
 
             if (filePath == null) return;
 
@@ -148,7 +154,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
 
             try
             {
-                await _imageExportService.ExportAsync(visual, filePath, scale: 2.0);
+                await _imageExportService.ExportAsAsync(visual, filePath, scale: 2.0);
                 _dialogService.ShowInfo("Export Complete", $"Map exported successfully!\n\nFile: {filePath}");
             }
             catch (Exception ex)

@@ -26,7 +26,7 @@ namespace TileMapBuilder.Core.Services.TileService
             };
         }
 
-        public async Task<bool> SaveMapAsync(TileMap map, string filePath)
+        public async Task<bool?> SaveMapAsync(TileMap map, string filePath)
         {
             try
             {

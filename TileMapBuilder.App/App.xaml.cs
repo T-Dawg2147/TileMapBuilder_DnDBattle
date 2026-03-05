@@ -34,6 +34,9 @@ namespace TileMapBuilder.App
             services.AddSingleton<ITileMapService, TileMapService>();
             services.AddSingleton<IDialogService, DialogService>();
 
+            services.AddSingleton<MapVisualProviderHolder>();
+            services.AddSingleton<IMapVisualProvider>(sp => sp.GetRequiredService<MapVisualProviderHolder>());
+
             // ViewModels
             services.AddTransient<ShellViewModel>();
             services.AddTransient<TileMapEditorViewModel>();

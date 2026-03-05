@@ -45,7 +45,7 @@ namespace TileMapBuilder.App.Services
         public bool ShowNewTileMapDialog(
             out string mapName, out int? width, out int? height)
         {
-            var viewModel = new NewTileMapViewModel();
+            var viewModel = new NewTileMapViewModel(this, showDimensions: true, dialogTitle: "Create New Tile Map");
 
             var dialog = new NewTileMapDialog()
             {
@@ -65,7 +65,7 @@ namespace TileMapBuilder.App.Services
         public void ShowInfo(string title, string message, MessageBoxImage image = MessageBoxImage.Information)
             => MessageBox.Show(message, title, MessageBoxButton.OK, image);
 
-        public bool Confirm(string title, string message)
+        public bool ShowConfirm(string title, string message)
             => MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
     }
 }

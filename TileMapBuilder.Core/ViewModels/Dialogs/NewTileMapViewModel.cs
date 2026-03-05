@@ -29,6 +29,8 @@ namespace TileMapBuilder.Core.ViewModels.Dialogs
 
     public sealed partial class NewTileMapViewModel : ObservableObject
     {
+        private readonly IDialogService _dialogService;
+
         [ObservableProperty] private string _name = string.Empty;
         [ObservableProperty] private string _fileLocation = string.Empty;
         [ObservableProperty] private int? _width;
@@ -43,10 +45,12 @@ namespace TileMapBuilder.Core.ViewModels.Dialogs
         public bool HasAdditionalFields => AdditionalFields.Count > 0;
 
         public NewTileMapViewModel(
+            IDialogService dialogService,
             bool showDimensions = false,
             IEnumerable<NewTileMap>? additionalFields = null,
             string dialogTitle = "Enter Details")
         {
+            _dialogService = dialogService;
             ShowDimensions = showDimensions;
             DialogTitle = dialogTitle;
 

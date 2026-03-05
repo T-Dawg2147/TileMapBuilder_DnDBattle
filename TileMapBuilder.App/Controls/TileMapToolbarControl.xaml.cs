@@ -1,18 +1,10 @@
 ﻿using DnDBattle.Data.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
+using TileMapBuilder.App.Services;
 using TileMapBuilder.Core.Models.Tiles;
 using TileMapBuilder.Core.Models.Tiles.Metadata;
 using TileMapBuilder.Core.Services.TileService;
@@ -32,6 +24,7 @@ namespace TileMapBuilder.App.Controls
         public TileMap TileMap
         {
             get => (TileMap)GetValue(TileMapProperty);
+            set => SetValue(TileMapProperty, value);
         }
 
         private bool _isPanning;
@@ -59,6 +52,12 @@ namespace TileMapBuilder.App.Controls
             _vm.MapRenderRequested += RenderMap;
             _vm.TileDrawRequested += DrawTile;
             _vm.TileRemoveVisualRequested += RemoveTileVisual;
+
+            if (Application.Current is App app)
+            {
+                var holder = new MapVisualProviderHolder();
+                holder.SetVisualFactory(() => MapCanvas);
+            }
 
             RenderMap();
         }
@@ -104,7 +103,7 @@ namespace TileMapBuilder.App.Controls
                 GridLayer.Children.Add(line);
             }
 
-            for (int x = 0; x <= tileMap.Height; x++)
+            for (int x = 0; x <= tileMap.Width; x++)
             {
                 var line = new Line()
                 {
@@ -121,7 +120,7 @@ namespace TileMapBuilder.App.Controls
             if (_vm?.TileMap == null) return;
             var tileMap = _vm.TileMap;
 
-            var tileDef = TileLibraryService.Instance.GetTileById(tile.TileDefinitionId);
+            var tileDef = TileLibraryService.Instance.GetTileById(tile.TileDefinitionId!);
             if (tileDef == null) return;
 
             if (!_vm.IsLayerVisible(tileDef.Layer)) return;

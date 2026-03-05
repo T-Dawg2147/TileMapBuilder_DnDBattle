@@ -26,7 +26,7 @@ namespace TileMapBuilder.Core.Services.TileService
 
         private readonly string _tileDirectory;
 
-        private TileLibraryService()
+        public TileLibraryService()
         {
             AvailableTiles = new ObservableCollection<TileDefinition>();
             _tileDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "Tiles");
