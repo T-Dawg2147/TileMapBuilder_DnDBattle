@@ -1,12 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Win32;
 using System.IO;
 using System.Windows;
 using TileMapBuilder.Core.Models.Tiles;
 using TileMapBuilder.Core.Services.Interfaces;
 using TileMapBuilder.Core.Services.TileService;
-using static System.Net.WebRequestMethods;
 
 namespace TileMapBuilder.Core.ViewModels.TileViewModels
 {
@@ -21,7 +19,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
 
         public string WindowTitle => CurrentMap != null
             ? $"Tile Map Builder - {CurrentMap.Name}"
-            : "Tile Mape Builder";
+            : "Tile Map Builder";
 
         private readonly string _searchPattern = "*.jpg;*.jpeg;*.png;*.bmp";
         [ObservableProperty] private string _currentFilePath = string.Empty;

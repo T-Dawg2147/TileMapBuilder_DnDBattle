@@ -4,6 +4,7 @@ using System.Windows;
 using TileMapBuilder.App.Services;
 using TileMapBuilder.App.Views;
 using TileMapBuilder.Core.Services.Interfaces;
+using TileMapBuilder.Core.Services.TileService;
 using TileMapBuilder.Core.ViewModels;
 using TileMapBuilder.Core.ViewModels.Dialogs;
 using TileMapBuilder.Core.ViewModels.TileViewModels;
@@ -26,10 +27,14 @@ namespace TileMapBuilder.App
 
         private void ConfigureServices(IServiceCollection services)
         {
+            // Services
             services.AddSingleton<IViewModelFactory, ViewModelFactory>();
             services.AddSingleton<INavigationService, NavigationService>();
+            services.AddSingleton<ITileLibraryService, TileLibraryService>();
+            services.AddSingleton<ITileMapService, TileMapService>();
             services.AddSingleton<IDialogService, DialogService>();
 
+            // ViewModels
             services.AddTransient<ShellViewModel>();
             services.AddTransient<TileMapEditorViewModel>();
             services.AddTransient<TileMapControlViewModel>();

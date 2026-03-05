@@ -46,7 +46,7 @@ namespace DnDBattle.Data.Services
             var act = _redo.Pop();
             try { act.Do(); }
             catch { }
-            _redo.Push(act);
+            _undo.Push(act);
             StateChanged?.Invoke(null, EventArgs.Empty);
         }
 

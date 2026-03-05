@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TileMapBuilder.Core.Services.Interfaces;
 
 namespace TileMapBuilder.Core.ViewModels.Dialogs
 {
@@ -74,13 +75,8 @@ namespace TileMapBuilder.Core.ViewModels.Dialogs
         [RelayCommand]
         private void BrowseFolder()
         {
-            string folderOutput;
-            var dialog = new DialogService();
-
-            if (dialog.ShowFolderDialog(out folderOutput) == true)
-            {
-                FileLocation = folderOutput;
-            }            
+            if (_dialogService.ShowFolderDialog(out var folder))
+                FileLocation = folder;        
         }
     }
 }

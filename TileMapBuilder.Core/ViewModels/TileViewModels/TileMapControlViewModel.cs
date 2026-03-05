@@ -97,7 +97,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         [RelayCommand]
         private void RotateRight()
         {
-            CurrentRotation = (CurrentRotation - 90) % 360;
+            CurrentRotation = (CurrentRotation + 90) % 360;
             UpdateTransformState();
         }
 
