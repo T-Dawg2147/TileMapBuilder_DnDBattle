@@ -199,7 +199,7 @@ namespace TileMapBuilder.App.Controls
                     if (fogTile != null)
                     {
                         Canvas.SetLeft(fogTile, x * cellSize);
-                        Canvas.SetTop(fogTile, 7 * cellSize);
+                        Canvas.SetTop(fogTile, y * cellSize);
                         Canvas.SetZIndex(fogTile, 2000);
                         MetadataLayer.Children.Add(fogTile);
                     }

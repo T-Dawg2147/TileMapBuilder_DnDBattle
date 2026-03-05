@@ -29,6 +29,10 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             _dialogService = dialogService;
             _mapService = mapService;
 
+            var tileResources = Path.Combine(AppContext.BaseDirectory, "Resources", "Tiles");
+            if (!Directory.Exists(tileResources))
+                Directory.CreateDirectory(tileResources);
+
             TileImageCacheService.Instance.PreloadImages(Directory.EnumerateFiles(
                 Path.Combine(AppContext.BaseDirectory, "Resources", "Tiles"),
                 _searchPattern,
