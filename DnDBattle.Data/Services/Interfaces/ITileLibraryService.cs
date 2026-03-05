@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TileMapBuilder.Core.Models.Tiles;
+﻿using System.Collections.ObjectModel;
+using DnDBattle.Data.Models.Tiles;
 
-namespace TileMapBuilder.Core.Services.Interfaces
+namespace DnDBattle.Data.Services.Interfaces
 {
     public interface ITileLibraryService
     {
@@ -16,6 +11,8 @@ namespace TileMapBuilder.Core.Services.Interfaces
         void LoadTileLibrary();
 
         TileDefinition? GetTileById(string id);
+
+        TileDefinition? GetTilesByImagePath(string imagePath);
 
         Dictionary<string, List<TileDefinition>> GetTilesByCategory();
     }

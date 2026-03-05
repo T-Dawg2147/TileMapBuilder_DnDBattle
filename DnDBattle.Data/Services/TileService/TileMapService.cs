@@ -1,24 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-using TileMapBuilder.Core.Models.Tiles;
-using TileMapBuilder.Core.Services.Interfaces;
+using DnDBattle.Data.Models.Tiles;
+using DnDBattle.Data.Services.Interfaces;
 
-namespace TileMapBuilder.Core.Services.TileService
+namespace DnDBattle.Data.Services.TileService
 {
     public sealed class TileMapService : ITileMapService
     {
         private readonly JsonSerializerOptions _jsonOptions;
+        private readonly ITileLibraryService _tileLibraryService;
 
-        public TileMapService()
+        public TileMapService(ITileLibraryService tileLibraryService)
         {
+            _tileLibraryService = tileLibraryService;
             _jsonOptions = new JsonSerializerOptions()
             {
                 WriteIndented = true,
@@ -111,12 +108,12 @@ namespace TileMapBuilder.Core.Services.TileService
 
         private TileMap DtoToMap(TileMapDto dto)
         {
-            if (TileLibraryService.Instance.AvailableTiles.Count == 0)
+            if (_tileLibraryService.AvailableTiles.Count == 0)
             {
-                TileLibraryService.Instance.LoadTileLibrary();
+                _tileLibraryService.LoadTileLibrary();
             }
 
-            var map = new Models.Tiles.TileMap
+            var map = new TileMap
             {
                 Id = dto.Id,
                 Name = dto.Name,
@@ -163,7 +160,7 @@ namespace TileMapBuilder.Core.Services.TileService
                 {
                     Id = t.Id,
                     TileDefinitionId = t.TileDefinitionId!,
-                    ImagePath = TileLibraryService.Instance.GetTileById(t.TileDefinitionId!)!.ImagePath,
+                    ImagePath = _tileLibraryService.GetTileById(t.TileDefinitionId!)!.ImagePath,
                     GridX = t.GridX,
                     GridY = t.GridY,
                     Rotation = t.Rotation,
@@ -179,14 +176,14 @@ namespace TileMapBuilder.Core.Services.TileService
 
         private string ResolveTileDefinitionId(TileDto dto)
         {
-            var tileDef = TileLibraryService.Instance.GetTileById(dto.TileDefinitionId);
+            var tileDef = _tileLibraryService.GetTileById(dto.TileDefinitionId);
             if (tileDef != null)
                 return dto.TileDefinitionId;
 
             // FALLBACK - if for whatever reason it can load from the ID, try the imagePath
             if (!string.IsNullOrEmpty(dto.ImagePath))
             {
-                var fallback = TileLibraryService.Instance.GetTilesByImagePath(dto.ImagePath);
+                var fallback = _tileLibraryService.GetTilesByImagePath(dto.ImagePath);
                 if (fallback != null)
                 {
                     Debug.WriteLine($"[TileMapService] Resolved tile by ImagePath fallback: {dto.ImagePath} -> {fallback.Id}");

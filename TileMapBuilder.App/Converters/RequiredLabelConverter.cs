@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Data;
 
-namespace TileMapBuilder.Core.Converters
+namespace TileMapBuilder.App.Converters
 {
     public sealed class RequiredLabelConverter : IValueConverter
     {

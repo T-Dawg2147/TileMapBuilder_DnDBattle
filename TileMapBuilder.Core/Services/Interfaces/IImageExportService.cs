@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Media;
-
-namespace TileMapBuilder.Core.Services.Interfaces
+﻿namespace TileMapBuilder.Core.Services.Interfaces
 {
     public interface IImageExportService
     {
-        Task ExportAsAsync(Visual visual, string filePath, double scale = 2.0);
+        /// <summary>
+        /// Exports a visual element to an image file.
+        /// The visual parameter is platform-specific (e.g., WPF Visual).
+        /// </summary>
+        Task ExportAsAsync(object visual, string filePath, double scale = 2.0);
     }
 }

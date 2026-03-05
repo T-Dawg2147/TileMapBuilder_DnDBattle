@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Media;
+﻿using System.Windows.Media;
 using TileMapBuilder.Core.Services.Interfaces;
 
 namespace TileMapBuilder.App.Services
@@ -17,7 +12,7 @@ namespace TileMapBuilder.App.Services
             _visualFactory = visualFactory;
         }
 
-        public Visual? GetMapVisual()
+        public object? GetMapVisual()
         {
             return _visualFactory?.Invoke();
         }

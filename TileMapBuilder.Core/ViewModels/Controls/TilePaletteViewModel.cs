@@ -1,12 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
-using TileMapBuilder.Core.Models.Tiles;
+using DnDBattle.Data.Models.Tiles;
+using DnDBattle.Data.Services.Interfaces;
 using TileMapBuilder.Core.Services.Interfaces;
-using TileMapBuilder.Core.Services.TileService;
 
 namespace TileMapBuilder.Core.ViewModels.Controls
 {
@@ -47,10 +46,10 @@ namespace TileMapBuilder.Core.ViewModels.Controls
         {
             try
             {
-                TileLibraryService.Instance.LoadTileLibrary();
+                _tileLibraryService.LoadTileLibrary();
                 ApplyFilter();
 
-                int totalTiles = TileLibraryService.Instance.AvailableTiles.Count;
+                int totalTiles = _tileLibraryService.AvailableTiles.Count;
                 StatusText = $"{totalTiles} available"; ; 
             }
             catch (Exception ex)
@@ -60,7 +59,7 @@ namespace TileMapBuilder.Core.ViewModels.Controls
                 StatusText = $"Error: {ex.Message}";
                 _dialogService.ShowInfo("Tile Library Error",
                     $"Failed to load tile library:\n\n{ex.Message}",
-                    System.Windows.MessageBoxImage.Warning);
+                    DialogIcon.Warning);
             }
         }
 
@@ -146,7 +145,7 @@ namespace TileMapBuilder.Core.ViewModels.Controls
             {
                 _dialogService.ShowInfo("Import Error",
                     $"Error importing tiles:\n\n{ex.Message}",
-                    System.Windows.MessageBoxImage.Error);
+                    DialogIcon.Error);
             }
         }
 

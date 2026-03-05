@@ -4,10 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using TileMapBuilder.Core.Models.Tiles;
-using TileMapBuilder.Core.Models.Tiles.Metadata;
+using DnDBattle.Data.Models.Tiles;
+using DnDBattle.Data.Models.Tiles.Metadata;
 
-namespace TileMapBuilder.Core.Services.UndoRedo
+namespace DnDBattle.Data.Services.UndoRedo
 {
     public class TilePlaceAction : IUndoableAction
     {

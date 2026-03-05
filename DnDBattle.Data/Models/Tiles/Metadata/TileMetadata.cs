@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace TileMapBuilder.Core.Models.Tiles.Metadata
+namespace DnDBattle.Data.Models.Tiles.Metadata
 {
     public abstract partial class TileMetadata : ObservableObject
     {

@@ -1,9 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Win32;
-using System.IO;
 using System.Windows;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using TileMapBuilder.App.Controls;
 using TileMapBuilder.App.Services;
 using TileMapBuilder.Core.ViewModels.Controls;

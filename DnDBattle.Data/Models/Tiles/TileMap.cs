@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TileMapBuilder.Core.Models.Tiles
+namespace DnDBattle.Data.Models.Tiles
 {
 
     public partial class TileMap : ObservableObject

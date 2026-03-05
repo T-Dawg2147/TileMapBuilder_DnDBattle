@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Media;
-
-namespace TileMapBuilder.Core.Services.Interfaces
+﻿namespace TileMapBuilder.Core.Services.Interfaces
 {
     public interface IMapVisualProvider
     {
-        Visual? GetMapVisual();
+        /// <summary>
+        /// Gets the map visual element for export.
+        /// Returns a platform-specific visual (e.g., WPF Visual).
+        /// </summary>
+        object? GetMapVisual();
     }
 }

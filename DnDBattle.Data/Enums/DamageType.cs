@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Media;
-
-namespace DnDBattle.Data.Enums
+﻿namespace DnDBattle.Data.Enums
 {
     [Flags]
     public enum DamageType
@@ -70,23 +62,27 @@ namespace DnDBattle.Data.Enums
             };
 
 
-        public static Color GetColor(this DamageType type)
+        /// <summary>
+        /// Returns the color for a damage type as an (R, G, B) tuple.
+        /// UI layers can convert this to their platform-specific color type.
+        /// </summary>
+        public static (byte R, byte G, byte B) GetColor(this DamageType type)
             => type switch
             {
-                DamageType.Bludgeoning => Color.FromRgb(139, 119, 101),
-                DamageType.Piercing => Color.FromRgb(192, 192, 192),
-                DamageType.Slashing => Color.FromRgb(169, 169, 169),
-                DamageType.Fire => Color.FromRgb(255, 87, 34),
-                DamageType.Cold => Color.FromRgb(79, 195, 247),
-                DamageType.Lightning => Color.FromRgb(255, 235, 59),
-                DamageType.Thunder => Color.FromRgb(171, 71, 188),
-                DamageType.Acid => Color.FromRgb(76, 175, 80),
-                DamageType.Poison => Color.FromRgb(156, 39, 176),
-                DamageType.Necrotic => Color.FromRgb(66, 66, 66),
-                DamageType.Radiant => Color.FromRgb(255, 241, 118),
-                DamageType.Force => Color.FromRgb(100, 181, 246),
-                DamageType.Psychic => Color.FromRgb(236, 64, 122),
-                _ => Color.FromRgb(158, 158, 158)
+                DamageType.Bludgeoning => (139, 119, 101),
+                DamageType.Piercing => (192, 192, 192),
+                DamageType.Slashing => (169, 169, 169),
+                DamageType.Fire => (255, 87, 34),
+                DamageType.Cold => (79, 195, 247),
+                DamageType.Lightning => (255, 235, 59),
+                DamageType.Thunder => (171, 71, 188),
+                DamageType.Acid => (76, 175, 80),
+                DamageType.Poison => (156, 39, 176),
+                DamageType.Necrotic => (66, 66, 66),
+                DamageType.Radiant => (255, 241, 118),
+                DamageType.Force => (100, 181, 246),
+                DamageType.Psychic => (236, 64, 122),
+                _ => (158, 158, 158)
             };
 
         public static DamageType ParseFromString(string text)

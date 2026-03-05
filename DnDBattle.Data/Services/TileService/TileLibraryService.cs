@@ -1,33 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Reflection.Metadata;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using TileMapBuilder.Core.Models.Tiles;
-using TileMapBuilder.Core.Services.Interfaces;
+using DnDBattle.Data.Models.Tiles;
+using DnDBattle.Data.Services.Interfaces;
 
-namespace TileMapBuilder.Core.Services.TileService
+namespace DnDBattle.Data.Services.TileService
 {
     public sealed class TileLibraryService : ITileLibraryService
     {
         private static readonly string _supportedFileTypes = "*.png;*.jpg;*.jpeg;*.bmp";
 
-        private static readonly Lazy<TileLibraryService> _instance =
-            new Lazy<TileLibraryService>(() => new TileLibraryService());
-
-        public static TileLibraryService Instance => _instance.Value;
+        private readonly ITileImageCacheService? _imageCache;
 
         public ObservableCollection<TileDefinition> AvailableTiles { get; private set; }
 
         private readonly string _tileDirectory;
 
-        public TileLibraryService()
+        public TileLibraryService() : this(null) { }
+
+        public TileLibraryService(ITileImageCacheService? imageCache = null)
         {
+            _imageCache = imageCache;
             AvailableTiles = new ObservableCollection<TileDefinition>();
             _tileDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "Tiles");
 
@@ -66,7 +61,7 @@ namespace TileMapBuilder.Core.Services.TileService
 
                     AvailableTiles.Add(tileDef);
 
-                    TileImageCacheService.Instance.GetOrLoadImage(relativePath);
+                    _imageCache?.GetOrLoadImage(relativePath);
                 }
                 catch (Exception ex)
                 {
