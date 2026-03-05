@@ -4,7 +4,6 @@
         xmlns:controls="clr-namespace:TileMapBuilder.App.Controls"
         xmlns:views="clr-namespace:TileMapBuilder.App.Views"
         Title="Tile Map Builder" Height="700" Width="1200">
-
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="250"/>
@@ -25,12 +24,12 @@
             <!-- Top Menu -->
             <Menu Grid.Row="0" Background="{StaticResource Brush_Background_Control}">
                 <MenuItem Header="File" Foreground="{StaticResource Brush_Text_Primary}">
-                    <MenuItem Header="New Map..." Click="NewMap_Click"/>
-                    <MenuItem Header="Open Map..." Click="OpenMap_Click"/>
-                    <MenuItem Header="Save Map" Click="SaveMap_Click"/>
-                    <MenuItem Header="Save Map As..." Click="SaveMapAs_Click"/>
+                    <MenuItem Header="New Map..." Command="{Binding CreateNewMapCommand}"/>
+                    <MenuItem Header="Open Map..." Command="{Binding LoadMapCommand}"/>
+                    <MenuItem Header="Save Map" Command="{Binding SaveMapCommand}"/>
+                    <MenuItem Header="Save Map As..." Command="{Binding SaveMapAsCommand}"/>
                     <Separator/>
-                    <MenuItem Header="Export as Image..." Click="ExportImage_Click"/>
+                    <MenuItem Header="Export as Image..." Command="{Binding ExportAsImageCommand}"/>
                     <Separator/>
                     <MenuItem Header="Close" Click="Close_Click"/>
                 </MenuItem>
@@ -68,9 +67,10 @@
 
             <!-- Editor Control -->
             <Grid Grid.Row="1">
-                <!-- NOTE I would REALLY like to seperate the canvas entity from the tool bar, maybe have the toolbar floating? -->
+                <!-- Editor Control (existing) -->
                 <controls:TileMapToolbarControl x:Name="EditorControl"/>
 
+                <!-- NEW: Minimap Overlay -->
                 <controls:MinimapControl x:Name="Minimap" 
                               HorizontalAlignment="Right" 
                               VerticalAlignment="Bottom"
