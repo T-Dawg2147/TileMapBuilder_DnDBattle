@@ -12,6 +12,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
     {
         private readonly ITileMapService _mapService;
         private readonly IDialogService _dialogService;
+        private readonly IMapVisualProvider _mapVisualProvider;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(WindowTitle))]
@@ -24,10 +25,11 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         private readonly string _searchPattern = "*.jpg;*.jpeg;*.png;*.bmp";
         [ObservableProperty] private string _currentFilePath = string.Empty;
 
-        public TileMapEditorViewModel(ITileMapService mapService, IDialogService dialogService)
+        public TileMapEditorViewModel(ITileMapService mapService, IDialogService dialogService, IMapVisualProvider mapVisualProvider)
         {
             _dialogService = dialogService;
             _mapService = mapService;
+            _mapVisualProvider = mapVisualProvider;
 
             var tileResources = Path.Combine(AppContext.BaseDirectory, "Resources", "Tiles");
             if (!Directory.Exists(tileResources))
@@ -118,6 +120,40 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
                     _dialogService.ShowInfo("Success", "Map saved successfully"); // Does i really want this to open a window on save?
                 else
                     _dialogService.ShowInfo("Error", "Failed to save map.", MessageBoxImage.Error);
+            }
+        }
+
+        [RelayCommand]
+        private async Task ExportAsImage()
+        {
+            if (CurrentMap == null)
+            {
+                _dialogService.ShowInfo("Export", "No map to export.", MessageBoxImage.Warning);
+                return;
+            }
+
+            var filePath = _dialogService.ShowSaveFileDialog(
+                "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg",
+                "Export Map as Image",
+                CurrentMap.Name + "png");
+
+            if (filePath == null) return;
+
+            var visual = _mapVisualProvider.GetMapVisual();
+            if (visual == null)
+            {
+                _dialogService.ShowInfo("Export", "Could not access map viusal for export.", MessageBoxImage.Error);
+                return;
+            }
+
+            try
+            {
+                await _imageExportService.ExportAsync(visual, filePath, scale: 2.0);
+                _dialogService.ShowInfo("Export Complete", $"Map exported successfully!\n\nFile: {filePath}");
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowInfo("Export Error", ex.Message, MessageBoxImage.Error);
             }
         }
     }
