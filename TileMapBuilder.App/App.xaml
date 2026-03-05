@@ -68,6 +68,7 @@
         <converter:TileImageConverter x:Key="TileImageConverter"/>
         <converter:RequiredLabelConverter x:Key="RequiredLabelConverter"/>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
 
         <!-- ==================== GLOBAL STYLES ==================== -->
 
