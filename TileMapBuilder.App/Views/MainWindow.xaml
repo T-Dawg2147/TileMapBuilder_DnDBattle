@@ -3,19 +3,74 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:views="clr-namespace:TileMapBuilder.App.Views"
+        xmlns:controls="clr-namespace:TileMapBuilder.App.Controls"
         xmlns:tileVm="clr-namespace:TileMapBuilder.Core.ViewModels.TileViewModels;assembly=TileMapBuilder.Core"
         mc:Ignorable="d"
-        Title="{Binding CurrentView.WindowTitle, FallbackValue='Tile Map Builder'}" 
+        Title="{Binding CurrentView.WindowTitle, FallbackValue='Tile Map Builder'}"
         Height="700" Width="1200"
         Background="{StaticResource Brush_Background_Darkest}"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized">
 
     <Window.Resources>
+        <!--
+            THIS IS THE KEY PIECE!
+            When ShellViewModel.CurrentView is a TileMapEditorViewModel,
+            WPF automatically creates a TileMapEditorContent and sets the
+            TileMapEditorViewModel as its DataContext.
+        -->
         <DataTemplate DataType="{x:Type tileVm:TileMapEditorViewModel}">
-            <views:TileMapEditorWindow />
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- ═══════════ TOP MENU BAR ═══════════ -->
+                <Menu Grid.Row="0" Background="{StaticResource Brush_Background_Control}">
+                    <MenuItem Header="File" Foreground="{StaticResource Brush_Text_Primary}">
+                        <MenuItem Header="New Map..." Command="{Binding CreateNewMapCommand}"/>
+                        <MenuItem Header="Open Map..." Command="{Binding LoadMapCommand}"/>
+                        <MenuItem Header="Save Map" Command="{Binding SaveMapCommand}"/>
+                        <MenuItem Header="Save Map As..." Command="{Binding SaveMapAsCommand}"/>
+                        <Separator/>
+                        <MenuItem Header="Export as Image..." Command="{Binding ExportAsImageCommand}"/>
+                    </MenuItem>
+                </Menu>
+
+                <!-- ═══════════ MAIN CONTENT ═══════════ -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="250" MinWidth="200" MaxWidth="400"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: Tile Palette -->
+                    <controls:TilePalettePanel x:Name="PalettePanel" Grid.Column="0"/>
+
+                    <!-- Splitter -->
+                    <GridSplitter Grid.Column="1" Width="3"
+                                  Background="{StaticResource Brush_Border_Normal}"
+                                  VerticalAlignment="Stretch"
+                                  HorizontalAlignment="Center"/>
+
+                    <!-- Right: Map Editor -->
+                    <controls:TileMapToolbarControl x:Name="MapEditorControl" Grid.Column="2"/>
+                </Grid>
+
+                <!-- ═══════════ STATUS BAR ═══════════ -->
+                <Border Grid.Row="2" Background="{StaticResource Brush_Background_Control}"
+                        Padding="10,4">
+                    <TextBlock Text="Ready"
+                               Foreground="{StaticResource Brush_Text_Hint}" FontSize="11"/>
+                </Border>
+            </Grid>
         </DataTemplate>
     </Window.Resources>
-    <ContentPresenter Content="{Binding CurrentView}"/>
+
+    <!-- This displays whatever ViewModel is in ShellViewModel.CurrentView -->
+    <ContentPresenter Content="{Binding CurrentView}" />
+
 </Window>
