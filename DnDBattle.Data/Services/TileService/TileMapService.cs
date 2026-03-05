@@ -180,7 +180,7 @@ namespace DnDBattle.Data.Services.TileService
             if (tileDef != null)
                 return dto.TileDefinitionId;
 
-            // FALLBACK - if for whatever reason it can load from the ID, try the imagePath
+            // FALLBACK - if for whatever reason it cannot load from the ID, try the imagePath
             if (!string.IsNullOrEmpty(dto.ImagePath))
             {
                 var fallback = _tileLibraryService.GetTilesByImagePath(dto.ImagePath);

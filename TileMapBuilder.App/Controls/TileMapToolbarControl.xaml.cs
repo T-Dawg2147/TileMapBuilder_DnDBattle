@@ -1,4 +1,6 @@
 ﻿using DnDBattle.Data.Enums;
+using DnDBattle.Data.Services.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -19,7 +21,7 @@ namespace TileMapBuilder.App.Controls
         private bool _isPanning;
         private Point _lastPanPoint;
         private bool _isPainting;
-        private DnDBattle.Data.Services.Interfaces.ITileLibraryService? _tileLibrary;
+        private ITileLibraryService? _tileLibrary;
 
         public TileMapToolbarControl()
         {
@@ -33,9 +35,7 @@ namespace TileMapBuilder.App.Controls
         {
             if (_vm == null) return;
 
-            _tileLibrary = App.Services is { } sp
-                ? Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<DnDBattle.Data.Services.Interfaces.ITileLibraryService>(sp)
-                : null;
+            _tileLibrary = App.Services?.GetService<ITileLibraryService>();
 
             _vm.MapRenderRequested += RenderMap;
             _vm.TileDrawRequested += DrawTile;

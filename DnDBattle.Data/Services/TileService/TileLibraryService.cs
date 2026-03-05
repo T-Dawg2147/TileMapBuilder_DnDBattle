@@ -126,7 +126,6 @@ namespace DnDBattle.Data.Services.TileService
         private string FormatDisplayName(string fileName)
             => fileName
             .Replace("-", " ")
-            .Replace("-", " ")
             .Trim();
 
         #endregion
