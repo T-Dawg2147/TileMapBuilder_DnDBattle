@@ -1,30 +1,35 @@
-﻿using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using System.IO;
 using System.Windows;
-using System.Windows.Controls;
 using TileMapBuilder.Core.Models.Tiles;
-using TileMapBuilder.Core.Services;
+using TileMapBuilder.Core.Services.Interfaces;
 using TileMapBuilder.Core.Services.TileService;
+using static System.Net.WebRequestMethods;
 
 namespace TileMapBuilder.Core.ViewModels.TileViewModels
 {
-    public partial class TileMapEditorViewModel
+    public partial class TileMapEditorViewModel : ObservableObject
     {
-        private TileMap _currentMap;
-        private readonly TileMapService _mapService;
-        private readonly IDialogService _dialogService; 
+        private readonly ITileMapService _mapService;
+        private readonly IDialogService _dialogService;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(WindowTitle))]
+        private TileMap? _currentMap;
+
+        public string WindowTitle => CurrentMap != null
+            ? $"Tile Map Builder - {CurrentMap.Name}"
+            : "Tile Mape Builder";
 
         private readonly string _searchPattern = "*.jpg;*.jpeg;*.png;*.bmp";
-        private string _currentFilePath;
+        [ObservableProperty] private string _currentFilePath = string.Empty;
 
-        private Canvas Canvas;
-
-        public TileMapEditorViewModel(IDialogService dialogService)
+        public TileMapEditorViewModel(ITileMapService mapService, IDialogService dialogService)
         {
             _dialogService = dialogService;
-
-            Canvas = new();
+            _mapService = mapService;
 
             TileImageCacheService.Instance.PreloadImages(Directory.EnumerateFiles(
                 Path.Combine(AppContext.BaseDirectory, "Resources", "Tiles"),
@@ -39,7 +44,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             if (_dialogService.ShowNewTileMapDialog(
                 out string tileMapName, out int? width, out int? height))
             {
-                _currentMap = new TileMap()
+                CurrentMap = new TileMap()
                 {
                     Name = tileMapName ?? "New Map",
                     Width = width ?? 50,
@@ -52,39 +57,36 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         [RelayCommand]
         private async Task LoadMap()
         {
-            var dialog = new OpenFileDialog
-            {
-                Filter = "Tile Map Files (*.json)|*.json|All Files (*.*)|*.*",
-                Title = "Open Tile Map"
-            };
+            var filePath = _dialogService.ShowOpenFileDialog(
+                "Tile Map Files (*.json)|*.json|All Files (*.*)|*.*",
+                "Open Tile Map");
 
-            if (dialog.ShowDialog() == true)
+
+            if (filePath == null) return;
+
+            var map = await _mapService.LoadMapAsync(filePath);
+
+            if (map != null)
             {
-                var map = await _mapService.LoadMapAsync(dialog.FileName);
-                if (map != null)
-                {
-                    _currentMap = map;
-                    _currentFilePath = dialog.FileName;
-                    EditorControl.TileMap = _currentMap; // OPENMAP - i have no way off the top of my head to get access to this Control?
-                    Title = $"Tile Map Builder - {map.Name}"; // OPENMAP - Need to find a way to set the windows title? Preferably still in a MVVM structure
-                }
-                else
-                {
-                    MessageBox.Show("Failed to load map.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                CurrentMap = map;
+                CurrentFilePath = filePath;
             }
+            else
+                _dialogService.ShowInfo("Error", "Failed to load map.", MessageBoxImage.Error);
         }
 
         [RelayCommand]
         private async Task SaveMap()
         {
-            if (string.IsNullOrEmpty(_currentFilePath))
+            if (string.IsNullOrEmpty(CurrentFilePath))
             {
                 await SaveMapAs();
                 return;
             }
 
-            bool success = (await _mapService.SaveMapAsync(_currentMap, _currentFilePath)) != null;
+            bool success = (await _mapService.SaveMapAsync(CurrentMap, CurrentFilePath)) != null;
+
+            // NOTE Do i really need this method AND SaveMapAs() to display success or error? Pretty sure only SaveMapAs() needs this
 
             // TODO This is a very basic implementation.
             // I would eventually like to be able to write this data to a temp file first to avoid corruptions in the primary file
@@ -97,16 +99,15 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         [RelayCommand]
         private async Task SaveMapAs()
         {
-            var dialog = new SaveFileDialog()
-            {
-                Filter = "Tile Map Files (*.json)|*.json|All Files (*.*)|*.*",
-                Title = "Save Tile Map As...",
-                FileName = _currentMap.Name + ".json"
-            };
+            var filePath = _dialogService.ShowSaveFileDialog(
+                "Tile Map Files (*.json)|*.json|All Files (*.*)|*.*",
+                "Save Tile Map As...",
+                CurrentMap!.Name + ".json");
 
-            if (dialog.ShowDialog() == true)
+
+            if (filePath != null)
             {
-                _currentFilePath = dialog.FileName;
+                CurrentFilePath = filePath;
                 bool success = (await _mapService.SaveMapAsync(_currentMap, _currentFilePath)) != null;
 
                 // TODO This is a very basic implementation.
@@ -115,29 +116,6 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
                     _dialogService.ShowInfo("Success", "Map saved successfully"); // Does i really want this to open a window on save?
                 else
                     _dialogService.ShowInfo("Error", "Failed to save map.", MessageBoxImage.Error);
-            }
-        }
-
-        [RelayCommand]
-        private async Task ExportAsImage()
-        {
-            var dialog = new SaveFileDialog()
-            {
-                Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg",
-                Title = "Export Map as Image",
-                FileName = _currentFilePath + ".png"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                try
-                {
-
-                }
-                catch (Exception ex)
-                {
-
-                }
             }
         }
     }

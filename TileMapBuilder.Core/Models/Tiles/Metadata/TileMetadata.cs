@@ -36,7 +36,7 @@ namespace TileMapBuilder.Core.Models.Tiles.Metadata
 
     public static class TileMetadataTypeExtension
     {
-        public static string ToString(this TileMetadataType type)
+        public static string GetDisplayName(this TileMetadataType type)
         {
             return type switch
             {
@@ -55,7 +55,7 @@ namespace TileMapBuilder.Core.Models.Tiles.Metadata
         }
 
         // TODO Would like to replace with actual images eventually if possible.
-        public static string ToIcon(this TileMetadataType type)
+        public static string GetIcon(this TileMetadataType type)
         {
             return type switch
             {

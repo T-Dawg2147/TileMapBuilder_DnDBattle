@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DnDBattle.Data.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,8 +25,17 @@ namespace TileMapBuilder.App.Controls
     /// </summary>
     public partial class TileMapToolbarControl : UserControl
     {
+        public static readonly DependencyProperty TileMapProperty =
+            DependencyProperty.Register(nameof(TileMap), typeof(TileMap), typeof(TileMapToolbarControl),
+                new PropertyMetadata(null, OnTileMapChanged));
+
+        public TileMap TileMap
+        {
+            get => (TileMap)GetValue(TileMapProperty);
+        }
+
         private bool _isPanning;
-        private bool _lastPanPoint;
+        private Point _lastPanPoint;
         private bool _isPainting;
 
         public TileMapToolbarControl()
@@ -35,6 +45,12 @@ namespace TileMapBuilder.App.Controls
         }
 
         private TileMapControlViewModel? _vm => DataContext as TileMapControlViewModel;
+
+        private static void OnTileMapChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var control = (TileMapToolbarControl)d;
+            control.RenderMap();
+        }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
@@ -182,20 +198,16 @@ namespace TileMapBuilder.App.Controls
 
         #region Metadata Handling
 
-        private void DrawMetadataOverlays()
+        private void DrawMetadataOverlays(TileMap tileMap)
         {
-            if (TileMap == null) return;
+            if (tileMap == null) return;
 
-            foreach (var tile in TileMap.PlacedTiles.Where(t => t.HasMetadata))
+            foreach (var tile in tileMap.PlacedTiles.Where(t => t.HasMetadata))
             {
                 DrawMetadataIndicator(tile);
             }
         }
 
-        /// <summary>
-        /// Draw a visual indicator for a tile with metadata
-        /// </summary>
-        // VISUAL REFRESH - TILE_MAP_EDITOR
         private void DrawMetadataIndicator(Tile tile)
         {
             double cellSize = TileMap.CellSize;
@@ -284,25 +296,19 @@ namespace TileMapBuilder.App.Controls
 
             MetadataLayer.Children.Add(iconPanel);
 
-            // Add spawn preview if exists
             var spawns = tile.Metadata.OfType<SpawnMetadata>().ToList();
             if (spawns.Any())
             {
                 DrawSpawnPreview(tile, spawns.First());
             }
 
-            // Enhanced tooltip
             var tooltip = CreateMetadataTooltip(tile);
             border.ToolTip = tooltip;
             iconPanel.ToolTip = tooltip;
         }
 
-        /// <summary>
-        /// Get border brush based on metadata types
-        /// </summary>
         private Brush GetMetadataBorderBrush(List<TileMetadataType> types)
         {
-            // Priority: Trap > Hazard > Secret > Interactive > Others
             if (types.Contains(TileMetadataType.Trap))
                 return new SolidColorBrush(Color.FromArgb(200, 244, 67, 54)); // Red
 
@@ -330,9 +336,21 @@ namespace TileMapBuilder.App.Controls
             return new SolidColorBrush(Color.FromArgb(200, 158, 158, 158)); // Gray
         }
 
-        /// <summary>
-        /// Create tooltip showing metadata details
-        /// </summary>
+        private Brush GetMetadataIconBackground(TileMetadataType type)
+        {
+            return type switch
+            {
+                TileMetadataType.Trap => new SolidColorBrush(Color.FromArgb(200, 244, 67, 54)),
+                TileMetadataType.Secret => new SolidColorBrush(Color.FromArgb(200, 255, 235, 59)),
+                TileMetadataType.Interactive => new SolidColorBrush(Color.FromArgb(200, 33, 150, 243)),
+                TileMetadataType.Hazard => new SolidColorBrush(Color.FromArgb(200, 255, 152, 0)),
+                TileMetadataType.Teleporter => new SolidColorBrush(Color.FromArgb(200, 0, 188, 212)),
+                TileMetadataType.Healing => new SolidColorBrush(Color.FromArgb(200, 76, 175, 80)),
+                TileMetadataType.Spawn => new SolidColorBrush(Color.FromArgb(200, 244, 67, 54)),
+                _ => new SolidColorBrush(Color.FromArgb(200, 158, 158, 158))
+            };
+        }
+
         private ToolTip CreateMetadataTooltip(Tile tile)
         {
             var tooltip = new ToolTip
@@ -445,10 +463,6 @@ namespace TileMapBuilder.App.Controls
             return tooltip;
         }
 
-        /// <summary>
-        /// Draw spawn point radius preview
-        /// </summary>
-        // VISUAL REFRESH - TILE_MAP_EDITOR
         private void DrawSpawnPreview(Tile tile, SpawnMetadata spawn)
         {
             if (spawn.SpawnRadius == 0) return;
@@ -500,26 +514,61 @@ namespace TileMapBuilder.App.Controls
         private void MapCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (_vm == null) return;
+
+            if (Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                _isPanning = true;
+                _lastPanPoint = e.GetPosition(MapBorder);
+                MapCanvas.CaptureMouse();
+            }
+            else
+            {
+                _isPainting = true;
+                var pos = e.GetPosition(MapCanvas);
+                var grid = _vm.ScreenToGrid(pos.X, pos.Y);
+                _vm.ProcessTileAction(grid.X, grid.Y);
+                MapCanvas.CaptureMouse();
+            }
         }
 
         private void MapCanvas_MouseMove(object sender, MouseEventArgs e)
         {
+            if (_vm == null) return;
 
+            if (_isPanning)
+            {
+                var currentPoint = e.GetPosition(MapBorder);
+                var delta = currentPoint - _lastPanPoint;
+                _vm.ApplyPanDelta(delta.X, delta.Y);
+                _lastPanPoint = currentPoint;
+            }
+            else if (_isPainting && e.LeftButton == MouseButtonState.Pressed)
+            {
+                var pos = e.GetPosition(MapCanvas);
+                var grid = _vm.ScreenToGrid(pos.X, pos.Y);
+                _vm.ProcessTileAction(grid.X, grid.Y);
+            }
         }
 
         private void MapCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-
+            _isPanning = false;
+            _isPainting = false;
+            MapCanvas.ReleaseMouseCapture();
         }
 
         private void MapCanvas_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
+            if (_vm == null) return;
 
+            var pos = e.GetPosition(MapCanvas);
+            var grid = _vm.ScreenToGrid(pos.X, pos.Y);
+            _vm.HandleRightClick(grid.X, grid.Y);
         }
 
         private void MapCanvas_MouseWheel(object sender, MouseWheelEventArgs e)
         {
-
+            _vm?.ApplyZoom(e.Delta);
         }
 
         #endregion
@@ -529,6 +578,47 @@ namespace TileMapBuilder.App.Controls
         protected override void OnPreviewKeyDown(KeyEventArgs e)
         {
             base.OnPreviewKeyDown(e);
+            if (_vm == null) return;
+
+            if (Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                switch (e.Key)
+                {
+                    case Key.Z:
+                        if (_vm.CanUndo) { _vm.UndoCommand.Execute(null); e.Handled = true; }
+                        break;
+                    case Key.Y:
+                        if (_vm.CanRedo) { _vm.RedoCommand.Execute(null); e.Handled = true; }
+                        break;
+                    case Key.C:
+                        var copyPos = GetCurrentGridPosition();
+                        _vm.CopyAtCommand.Execute(copyPos);
+                        e.Handled = true;
+                        break;
+                    case Key.V:
+                        var pastePos = GetCurrentGridPosition();
+                        _vm.PasteAtCommand.Execute(pastePos);
+                        e.Handled = true;
+                        break;
+                    case Key.X:
+                        var cutPos = GetCurrentGridPosition();
+                        _vm.CutAtCommand.Execute(cutPos);
+                        e.Handled = true;
+                        break;
+                }
+            }
+
+            if (Keyboard.Modifiers == ModifierKeys.None)
+            {
+                switch (e.Key)
+                {
+                    case Key.Q: _vm.RotateLeftCommand.Execute(null); e.Handled = true; break;
+                    case Key.E: _vm.RotateRightCommand.Execute(null); e.Handled = true; break;
+                    case Key.H: _vm.FlipHorizontalCommand.Execute(null); e.Handled = true; break;
+                    case Key.V: _vm.FlipVerticalCommand.Execute(null); e.Handled = true; break;
+                    case Key.R: _vm.ResetTransformsCommand.Execute(null); e.Handled = true; break;
+                }
+            }
         }
 
         #endregion

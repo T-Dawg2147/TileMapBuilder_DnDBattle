@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using TileMapBuilder.Core.Services;
+using TileMapBuilder.Core.Services.Interfaces;
 
 namespace TileMapBuilder.App.Services
 {

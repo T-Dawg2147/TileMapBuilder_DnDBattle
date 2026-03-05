@@ -5,11 +5,14 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace TileMapBuilder.Core.Services
+namespace TileMapBuilder.Core.Services.Interfaces
 {
     public interface IDialogService
     {
         public bool ShowFolderDialog(out string path);
+
+        public string? ShowOpenFileDialog(string filter, string title);
+        public string? ShowSaveFileDialog(string filter, string title, string? defaultFileName);
 
         /// <summary>
         /// Opens the "New Tile Map" dialog.

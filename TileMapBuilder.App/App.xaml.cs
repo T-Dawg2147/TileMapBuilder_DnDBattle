@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
 using TileMapBuilder.App.Services;
 using TileMapBuilder.App.Views;
-using TileMapBuilder.Core.Services;
+using TileMapBuilder.Core.Services.Interfaces;
 using TileMapBuilder.Core.ViewModels;
 using TileMapBuilder.Core.ViewModels.Dialogs;
 using TileMapBuilder.Core.ViewModels.TileViewModels;
@@ -32,6 +32,7 @@ namespace TileMapBuilder.App
 
             services.AddTransient<ShellViewModel>();
             services.AddTransient<TileMapEditorViewModel>();
+            services.AddTransient<TileMapControlViewModel>();
             services.AddTransient<NewTileMapViewModel>();
         }
 

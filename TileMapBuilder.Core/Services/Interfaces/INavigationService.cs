@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TileMapBuilder.Core.Services
+namespace TileMapBuilder.Core.Services.Interfaces
 {
     public interface INavigationService
     {

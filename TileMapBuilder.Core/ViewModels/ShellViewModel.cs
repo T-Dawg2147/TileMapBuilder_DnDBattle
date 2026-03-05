@@ -1,10 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TileMapBuilder.Core.Services;
+using TileMapBuilder.Core.Services.Interfaces;
 using TileMapBuilder.Core.ViewModels.TileViewModels;
 
 namespace TileMapBuilder.Core.ViewModels

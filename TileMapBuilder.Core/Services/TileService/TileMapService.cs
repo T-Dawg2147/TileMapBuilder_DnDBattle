@@ -9,10 +9,11 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using TileMapBuilder.Core.Models.Tiles;
+using TileMapBuilder.Core.Services.Interfaces;
 
 namespace TileMapBuilder.Core.Services.TileService
 {
-    public sealed class TileMapService
+    public sealed class TileMapService : ITileMapService
     {
         private readonly JsonSerializerOptions _jsonOptions;
 

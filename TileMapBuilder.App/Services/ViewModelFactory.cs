@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using TileMapBuilder.Core.Services;
+using TileMapBuilder.Core.Services.Interfaces;
 
 namespace TileMapBuilder.App.Services
 {

@@ -31,7 +31,7 @@ namespace DnDBattle.Data.Enums
 
     public static class DamageTypeExtensions
     {
-        public static string ToString(this DamageType type)
+        public static string GetDisplayName(this DamageType type)
             => type switch
             {
                 DamageType.Bludgeoning => "Bludgeoning",
@@ -50,7 +50,7 @@ namespace DnDBattle.Data.Enums
                 _ => type.ToString()
             };
 
-        public static string ToIcon(this DamageType type)
+        public static string GetIcon(this DamageType type)
             => type switch
             {
                 DamageType.Bludgeoning => "🔨",

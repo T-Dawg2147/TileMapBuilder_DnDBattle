@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using TileMapBuilder.Core.Models.Tiles;
 
-namespace TileMapBuilder.Core.Services
+namespace TileMapBuilder.Core.Services.Interfaces
 {
     public interface ITileLibraryService
     {

@@ -19,7 +19,7 @@ namespace TileMapBuilder.Core.Models.Tiles.Metadata
 
 
     // TODO Need to review this entire class, alot of unused/unneeded code blocks here and there?
-    public class TrapMetadata : TileMetadata
+    public sealed class TrapMetadata : TileMetadata
     {
         public override TileMetadataType Type => TileMetadataType.Trap;
 

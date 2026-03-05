@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using TileMapBuilder.Core.Models.Tiles;
+using TileMapBuilder.Core.Services.Interfaces;
 
 namespace TileMapBuilder.Core.Services.TileService
 {

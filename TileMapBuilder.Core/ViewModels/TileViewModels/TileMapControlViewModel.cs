@@ -3,7 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using DnDBattle.Data.Models;
 using DnDBattle.Data.Services;
 using TileMapBuilder.Core.Models.Tiles;
-using TileMapBuilder.Core.Services;
+using TileMapBuilder.Core.Services.Interfaces;
 using TileMapBuilder.Core.Services.UndoRedo;
 
 namespace TileMapBuilder.Core.ViewModels.TileViewModels

@@ -1,7 +1,8 @@
 ﻿using DnDBattle.Data.Services;
+using Microsoft.Win32;
 using System.Windows;
 using TileMapBuilder.App.Views.Dialogs;
-using TileMapBuilder.Core.Services;
+using TileMapBuilder.Core.Services.Interfaces;
 using TileMapBuilder.Core.ViewModels.Dialogs;
 
 namespace TileMapBuilder.App.Services
@@ -17,6 +18,29 @@ namespace TileMapBuilder.App.Services
 
         public bool ShowFolderDialog(out string path)
             => NativeFolderBrowser.ShowDialog(out path);
+
+        public string? ShowOpenFileDialog(string filter, string title)
+        {
+            var dialog = new OpenFileDialog()
+            {
+                Filter = filter,
+                Title = title
+            };
+
+            return dialog.ShowDialog() == true ? dialog.FileName : null;
+        }
+
+        public string? ShowSaveFileDialog(string filter, string title, string? defaultFileName = null)
+        {
+            var dialog = new SaveFileDialog()
+            {
+                Filter = filter,
+                Title = title,
+                FileName = defaultFileName ?? string.Empty
+            };
+
+            return dialog.ShowDialog() == true ? dialog.FileName : null;
+        }
 
         public bool ShowNewTileMapDialog(
             out string mapName, out int? width, out int? height)
