@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,16 +22,31 @@ namespace TileMapBuilder.App.Views.Dialogs
     /// </summary>
     public partial class NewTileMapDialog : Window
     {
-        private readonly DialogService _dialogService;
-        private readonly NewTileMapViewModel _vm;
-
         public NewTileMapDialog()
         {
-            _dialogService = new();
-
             InitializeComponent();
+            DataContextChanged += OnDataContextChanged;
+        }
 
-            DataContext = _vm;
+        private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.OldValue is NewTileMapViewModel oldVm)
+                oldVm.PropertyChanged -= OnViewModelPropertyChanged;
+
+            if (e.NewValue is NewTileMapViewModel newVm)
+                newVm.PropertyChanged += OnViewModelPropertyChanged;
+        }
+
+        private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(NewTileMapViewModel.DialogResult))
+            {
+                var vm = (NewTileMapViewModel)sender!;
+                if (vm.DialogResult.HasValue)
+                {
+                    DialogResult = vm.DialogResult.Value;
+                }
+            }
         }
     }
 }

@@ -19,6 +19,8 @@ namespace TileMapBuilder.App
     {
         private readonly IServiceProvider _serviceProvider;
 
+        public static IServiceProvider Services { get; private set; } = null!;
+
         public App()
         {
             var services = new ServiceCollection();
@@ -31,9 +33,12 @@ namespace TileMapBuilder.App
             // Services
             services.AddSingleton<IViewModelFactory, ViewModelFactory>();
             services.AddSingleton<INavigationService, NavigationService>();
+            services.AddSingleton<IDialogService, DialogService>();
+
             services.AddSingleton<ITileLibraryService, TileLibraryService>();
             services.AddSingleton<ITileMapService, TileMapService>();
-            services.AddSingleton<IDialogService, DialogService>();
+
+            services.AddSingleton<IImageExportService, ImageExportService>();
 
             services.AddSingleton<MapVisualProviderHolder>();
             services.AddSingleton<IMapVisualProvider>(sp => sp.GetRequiredService<MapVisualProviderHolder>());

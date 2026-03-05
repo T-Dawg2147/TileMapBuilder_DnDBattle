@@ -3,9 +3,19 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="clr-namespace:TileMapBuilder.App.Views"
+        xmlns:tileVm="clr-namespace:TileMapBuilder.Core.ViewModels.TileViewModels;assembly=TileMapBuilder.Core"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-        
-    </Grid>
+        Title="{Binding CurrentView.WindowTitle, FallbackValue='Tile Map Builder'}" 
+        Height="700" Width="1200"
+        Background="{StaticResource Brush_Background_Darkest}"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized">
+
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type tileVm:TileMapEditorViewModel}">
+            <views:TileMapEditorWindow />
+        </DataTemplate>
+    </Window.Resources>
+    <ContentPresenter Content="{Binding CurrentView}"/>
 </Window>

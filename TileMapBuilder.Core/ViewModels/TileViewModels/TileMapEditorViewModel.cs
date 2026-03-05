@@ -109,6 +109,8 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         [RelayCommand]
         private async Task SaveMapAs()
         {
+            if (CurrentMap == null) return;
+
             var filePath = _dialogService.ShowSaveFileDialog(
                 "Tile Map Files (*.json)|*.json|All Files (*.*)|*.*",
                 "Save Tile Map As...",

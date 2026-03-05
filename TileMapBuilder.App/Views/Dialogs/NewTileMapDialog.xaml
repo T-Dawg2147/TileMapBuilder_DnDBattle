@@ -3,26 +3,20 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:TileMapBuilder.App.Views.Dialogs"
+        mc:Ignorable="d"
         Title="{Binding DialogTitle}"
         SizeToContent="Height"
         Width="450"
+        Background="{StaticResource Brush_Background_Darkest}"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize">
 
-    <Window.Style>
-        <!-- Bind DialogResult to close the window automatically -->
-        <Style TargetType="Window">
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding DialogResult}" Value="True">
-                    <Setter Property="Tag" Value="CloseWindow" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding DialogResult}" Value="False">
-                    <Setter Property="Tag" Value="CloseWindow" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-    </Window.Style>
+    <!--
+        DataContext = NewTileMapViewModel (set by DialogService).
+        
+        Window closing is handled in code-behind by listening to
+        ViewModel.DialogResult changes — NOT by DataTriggers.
+    -->
 
     <Grid Margin="16">
         <Grid.RowDefinitions>
@@ -38,7 +32,7 @@
             <!-- Buttons -->
         </Grid.RowDefinitions>
 
-        <!-- ── Name ─��────────────────────────────────────────── -->
+        <!-- ── Name ──────────────────────────────────────────── -->
         <StackPanel Grid.Row="0" Margin="0,0,0,12">
             <TextBlock Text="Name" FontWeight="SemiBold" Margin="0,0,0,4" />
             <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
@@ -62,7 +56,7 @@
         <!-- ── Width / Height (conditional) ──────────────────── -->
         <StackPanel Grid.Row="2" Margin="0,0,0,12"
                     Visibility="{Binding ShowDimensions,
-                                 Converter={StaticResource BoolToVisibility}}">
+                                 Converter={StaticResource BoolToVisibilityConverter}}">
             <TextBlock Text="Dimensions" FontWeight="SemiBold" Margin="0,0,0,4" />
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="Width:" VerticalAlignment="Center" Margin="0,0,6,0" />
@@ -78,7 +72,7 @@
         <ItemsControl Grid.Row="3"
                       ItemsSource="{Binding AdditionalFields}"
                       Visibility="{Binding HasAdditionalFields,
-                                   Converter={StaticResource BoolToVisibility}}">
+                                   Converter={StaticResource BoolToVisibilityConverter}}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Margin="0,0,0,12">
@@ -87,7 +81,7 @@
                             <Run Text="{Binding IsRequired,
                                         Mode=OneTime,
                                         StringFormat='{}({0})',
-                                        Converter={StaticResource RequiredLabel}}"
+                                        Converter={StaticResource RequiredLabelConverter}}"
                                  Foreground="Gray" FontSize="11" />
                         </TextBlock>
                         <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"

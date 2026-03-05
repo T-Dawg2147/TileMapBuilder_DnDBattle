@@ -4,51 +4,46 @@
              Focusable="True">
     <Grid>
         <!-- Main canvas for tile rendering -->
-        <Border x:Name="MapBorder" 
-        ClipToBounds="True" 
-        Background="{Binding BackgroundBrush}">
+        <Border x:Name="MapBorder" ClipToBounds="True" 
+                Background="{StaticResource Brush_Background_Darkest}">
             <Canvas x:Name="MapCanvas"
-            Background="Transparent"
-            MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown"
-            MouseLeftButtonUp="MapCanvas_MouseLeftButtonUp"
-            MouseMove="MapCanvas_MouseMove"
-            MouseWheel="MapCanvas_MouseWheel"
-            MouseRightButtonDown="MapCanvas_MouseRightButtonDown">
+                    Background="Transparent"
+                    MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown"
+                    MouseLeftButtonUp="MapCanvas_MouseLeftButtonUp"
+                    MouseMove="MapCanvas_MouseMove"
+                    MouseWheel="MapCanvas_MouseWheel"
+                    MouseRightButtonDown="MapCanvas_MouseRightButtonDown">
                 <Canvas.RenderTransform>
                     <TransformGroup>
-                        <ScaleTransform x:Name="ZoomTransform" ScaleX="1" ScaleY="1" />
-                        <TranslateTransform x:Name="PanTransform" X="0" Y="0" />
+                        <ScaleTransform x:Name="ZoomTransform" 
+                                        ScaleX="{Binding ZoomLevel}" 
+                                        ScaleY="{Binding ZoomLevel}"/>
+                        <TranslateTransform x:Name="PanTransform" 
+                                            X="{Binding PanX}" 
+                                            Y="{Binding PanY}"/>
                     </TransformGroup>
                 </Canvas.RenderTransform>
 
-                <!-- Grid lines layer -->
                 <Canvas x:Name="GridLayer" />
-
-                <!-- Tiles layer -->
                 <Canvas x:Name="TilesLayer" />
-
-                <!-- Preview layer -->
                 <Canvas x:Name="PreviewLayer" />
-
-                <!-- Metadata overlay layer (DM-only indicators) -->
                 <Canvas x:Name="MetadataLayer" />
             </Canvas>
         </Border>
-        
+
+        <!-- Floating toolbar panel -->
         <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10"
                 Background="{StaticResource Brush_Background_Control}"
                 BorderBrush="{StaticResource Brush_Border_Normal}"
-                BorderThickness="1"
-                CornerRadius="4"
-                Padding="10">
+                BorderThickness="1" CornerRadius="4" Padding="10">
             <StackPanel Orientation="Vertical">
                 <TextBlock Text="Tile Map Editor" FontSize="14" FontWeight="Bold" Margin="0,0,0,5"/>
                 <Separator Margin="0,5"/>
 
-                <!-- NEW: Layer Selection -->
+                <!-- Layer Selection -->
                 <TextBlock Text="Active Layer:" Margin="0,5,0,2"/>
                 <ComboBox x:Name="CmbActiveLayer" Width="160" Margin="0,0,0,5"
-          SelectionChanged="ActiveLayer_Changed">
+                          SelectionChanged="ActiveLayer_Changed">
                     <ComboBoxItem Content="🟫 Floor" Tag="Floor"/>
                     <ComboBoxItem Content="🏔️ Terrain" Tag="Terrain"/>
                     <ComboBoxItem Content="🧱 Walls" Tag="Wall"/>
@@ -59,99 +54,66 @@
                     <ComboBoxItem Content="🏠 Roof" Tag="Roof"/>
                 </ComboBox>
 
-                <!-- NEW: Layer Visibility Toggles -->
+                <!-- Layer Visibility -->
                 <TextBlock Text="Visible Layers:" Margin="0,10,0,2" FontSize="11"/>
                 <WrapPanel Margin="0,0,0,5">
-                    <CheckBox Content="🟫" IsChecked="True" Tag="Floor" Margin="2" 
-              Checked="LayerVisibility_Changed" Unchecked="LayerVisibility_Changed" 
-              ToolTip="Floor" FontSize="14"/>
+                    <CheckBox Content="🟫" IsChecked="True" Tag="Floor" Margin="2"
+                              Checked="LayerVisibility_Changed" Unchecked="LayerVisibility_Changed" ToolTip="Floor" FontSize="14"/>
                     <CheckBox Content="🏔️" IsChecked="True" Tag="Terrain" Margin="2"
-              Checked="LayerVisibility_Changed" Unchecked="LayerVisibility_Changed"
-              ToolTip="Terrain" FontSize="14"/>
+                              Checked="LayerVisibility_Changed" Unchecked="LayerVisibility_Changed" ToolTip="Terrain" FontSize="14"/>
                     <CheckBox Content="🧱" IsChecked="True" Tag="Wall" Margin="2"
-              Checked="LayerVisibility_Changed" Unchecked="LayerVisibility_Changed"
-              ToolTip="Walls" FontSize="14"/>
+                              Checked="LayerVisibility_Changed" Unchecked="LayerVisibility_Changed" ToolTip="Walls" FontSize="14"/>
                     <CheckBox Content="🚪" IsChecked="True" Tag="Door" Margin="2"
-              Checked="LayerVisibility_Changed" Unchecked="LayerVisibility_Changed"
-              ToolTip="Doors" FontSize="14"/>
+                              Checked="LayerVisibility_Changed" Unchecked="LayerVisibility_Changed" ToolTip="Doors" FontSize="14"/>
                     <CheckBox Content="🪑" IsChecked="True" Tag="Furniture" Margin="2"
-              Checked="LayerVisibility_Changed" Unchecked="LayerVisibility_Changed"
-              ToolTip="Furniture" FontSize="14"/>
+                              Checked="LayerVisibility_Changed" Unchecked="LayerVisibility_Changed" ToolTip="Furniture" FontSize="14"/>
                     <CheckBox Content="📦" IsChecked="True" Tag="Props" Margin="2"
-              Checked="LayerVisibility_Changed" Unchecked="LayerVisibility_Changed"
-              ToolTip="Props" FontSize="14"/>
+                              Checked="LayerVisibility_Changed" Unchecked="LayerVisibility_Changed" ToolTip="Props" FontSize="14"/>
                     <CheckBox Content="✨" IsChecked="True" Tag="Effects" Margin="2"
-              Checked="LayerVisibility_Changed" Unchecked="LayerVisibility_Changed"
-              ToolTip="Effects" FontSize="14"/>
+                              Checked="LayerVisibility_Changed" Unchecked="LayerVisibility_Changed" ToolTip="Effects" FontSize="14"/>
                     <CheckBox Content="🏠" IsChecked="True" Tag="Roof" Margin="2"
-              Checked="LayerVisibility_Changed" Unchecked="LayerVisibility_Changed"
-              ToolTip="Roof" FontSize="14"/>
+                              Checked="LayerVisibility_Changed" Unchecked="LayerVisibility_Changed" ToolTip="Roof" FontSize="14"/>
                 </WrapPanel>
 
                 <Separator Margin="0,5"/>
 
-                <!-- Existing mode buttons -->
+                <!-- Mode Buttons - Now using Commands! -->
                 <StackPanel Orientation="Horizontal" Margin="0,5">
-                    <Button Content="🖌️ Paint" Width="80" Margin="2" 
-                            Click="PaintMode_Click" x:Name="BtnPaintMode"
-                            Style="{StaticResource ToolbarButton}"/>
-                                    <Button Content="🧹 Erase" Width="80" Margin="2" 
-                            Click="EraseMode_Click" x:Name="BtnEraseMode"
-                            Style="{StaticResource ToolbarButton}"/>
+                    <Button Content="🖌️ Paint" Width="80" Margin="2" Command="{Binding SetPaintModeCommand}"/>
+                    <Button Content="🧹 Erase" Width="80" Margin="2" Command="{Binding SetEraseModeCommand}"/>
                 </StackPanel>
 
                 <Separator Margin="0,5"/>
 
+                <!-- Transform Buttons - Now using Commands! -->
                 <TextBlock Text="Transform:" Margin="0,5,0,2" FontSize="11"/>
                 <StackPanel Orientation="Horizontal" Margin="0,5">
-                    <Button Content="↶" Width="32" Height="32" Margin="2" 
-                    Click="RotateLeft_Click" x:Name="BtnRotateLeft"
-                    Style="{StaticResource IconButton}"
-                    ToolTip="Rotate Left (Q)"/>
-                    <Button Content="↷" Width="32" Height="32" Margin="2" 
-                    Click="RotateRight_Click" x:Name="BtnRotateRight"
-                    Style="{StaticResource IconButton}"
-                    ToolTip="Rotate Right (E)"/>
-                    <Button Content="⟷" Width="32" Height="32" Margin="2" 
-                    Click="FlipHorizontal_Click" x:Name="BtnFlipH"
-                    Style="{StaticResource IconButton}"
-                    ToolTip="Flip Horizontal (H)"/>
-                    <Button Content="⇅" Width="32" Height="32" Margin="2" 
-                    Click="FlipVertical_Click" x:Name="BtnFlipV"
-                    Style="{StaticResource IconButton}"
-                    ToolTip="Flip Vertical (V)"/>
+                    <Button Content="↶" Width="32" Height="32" Margin="2" Command="{Binding RotateLeftCommand}" ToolTip="Rotate Left (Q)"/>
+                    <Button Content="↷" Width="32" Height="32" Margin="2" Command="{Binding RotateRightCommand}" ToolTip="Rotate Right (E)"/>
+                    <Button Content="⟷" Width="32" Height="32" Margin="2" Command="{Binding FlipHorizontalCommand}" ToolTip="Flip Horizontal (H)"/>
+                    <Button Content="⇅" Width="32" Height="32" Margin="2" Command="{Binding FlipVerticalCommand}" ToolTip="Flip Vertical (V)"/>
+                    <Button Content="🔄" Width="32" Height="32" Margin="2" Command="{Binding ResetTransformsCommand}" ToolTip="Reset All"/>
                 </StackPanel>
 
                 <Separator Margin="0,5"/>
 
                 <!-- View Buttons -->
                 <StackPanel Orientation="Horizontal" Margin="0,5">
-                    <Button Content="⚙️ Properties" Width="80" Margin="2" 
-            Click="PropertiesMode_Click" x:Name="BtnPropertiesMode"
-            Style="{StaticResource ToolbarButton}"/>
-                    <Button Content="👁️ DM View" Width="80" Margin="2" 
-            Click="ToggleDMView_Click" x:Name="BtnDMView"
-            Style="{StaticResource ToolbarButton}"/>
+                    <Button Content="⚙️ Properties" Width="80" Margin="2" Command="{Binding SetPropertiesModeCommand}"/>
+                    <Button Content="👁️ DM View" Width="80" Margin="2" Command="{Binding ToggleDMViewCommand}"/>
                 </StackPanel>
 
                 <Separator Margin="0,5"/>
 
-                <!-- NEW: Undo/Redo Buttons -->
+                <!-- Undo/Redo - Now using Commands! -->
                 <StackPanel Orientation="Horizontal" Margin="0,5">
-                    <Button Content="↶ Undo" Width="80" Margin="2" 
-            Click="Undo_Click" x:Name="BtnUndo"
-            Style="{StaticResource ToolbarButton}"
-            ToolTip="Undo (Ctrl+Z)"/>
-                    <Button Content="↷ Redo" Width="80" Margin="2" 
-            Click="Redo_Click" x:Name="BtnRedo"
-            Style="{StaticResource ToolbarButton}"
-            ToolTip="Redo (Ctrl+Y)"/>
+                    <Button Content="↶ Undo" Width="80" Margin="2" Command="{Binding UndoCommand}" ToolTip="Undo (Ctrl+Z)"/>
+                    <Button Content="↷ Redo" Width="80" Margin="2" Command="{Binding RedoCommand}" ToolTip="Redo (Ctrl+Y)"/>
                 </StackPanel>
 
                 <Separator Margin="0,5"/>
-                <TextBlock x:Name="TxtStatus" Text="{Binding StatusText}" 
-           Style="{StaticResource HintText}" 
-           Margin="0,5" FontSize="11"/>
+                <TextBlock Text="{Binding StatusText}" FontSize="11"
+                           Foreground="{StaticResource Brush_Text_Hint}" Margin="0,5"/>
             </StackPanel>
         </Border>
     </Grid>

@@ -31,8 +31,14 @@ namespace TileMapBuilder.Core.ViewModels.Dialogs
     {
         private readonly IDialogService _dialogService;
 
-        [ObservableProperty] private string _name = string.Empty;
-        [ObservableProperty] private string _fileLocation = string.Empty;
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
+        private string _name = string.Empty;
+
+        [ObservableProperty] 
+        [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))] 
+        private string _fileLocation = string.Empty;
+
         [ObservableProperty] private int? _width;
         [ObservableProperty] private int? _height;
         [ObservableProperty] private string _dialogTitle = "Enter Details";
