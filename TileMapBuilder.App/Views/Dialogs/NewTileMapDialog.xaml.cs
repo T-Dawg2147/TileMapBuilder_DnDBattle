@@ -11,6 +11,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using TileMapBuilder.App.Services;
 using TileMapBuilder.Core.ViewModels.Dialogs;
 
 namespace TileMapBuilder.App.Views.Dialogs
@@ -20,10 +21,13 @@ namespace TileMapBuilder.App.Views.Dialogs
     /// </summary>
     public partial class NewTileMapDialog : Window
     {
-        private readonly NewTileMapViewModel _vm = new();
+        private readonly DialogService _dialogService;
+        private readonly NewTileMapViewModel _vm;
 
         public NewTileMapDialog()
         {
+            _dialogService = new();
+
             InitializeComponent();
 
             DataContext = _vm;

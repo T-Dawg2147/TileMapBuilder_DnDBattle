@@ -6,6 +6,7 @@ using TileMapBuilder.App.Views;
 using TileMapBuilder.Core.Services.Interfaces;
 using TileMapBuilder.Core.Services.TileService;
 using TileMapBuilder.Core.ViewModels;
+using TileMapBuilder.Core.ViewModels.Controls;
 using TileMapBuilder.Core.ViewModels.Dialogs;
 using TileMapBuilder.Core.ViewModels.TileViewModels;
 
@@ -42,6 +43,7 @@ namespace TileMapBuilder.App
             services.AddTransient<TileMapEditorViewModel>();
             services.AddTransient<TileMapControlViewModel>();
             services.AddTransient<NewTileMapViewModel>();
+            services.AddTransient<TilePaletteViewModel>();
         }
 
         protected override void OnStartup(StartupEventArgs e)

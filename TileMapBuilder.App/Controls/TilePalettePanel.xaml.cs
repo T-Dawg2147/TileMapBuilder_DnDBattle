@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using TileMapBuilder.Core.ViewModels.Controls;
 
 namespace TileMapBuilder.App.Controls
 {
@@ -23,6 +24,13 @@ namespace TileMapBuilder.App.Controls
         public TilePalettePanel()
         {
             InitializeComponent();
+        }
+
+        private TilePaletteViewModel? ViewModel => DataContext as TilePaletteViewModel;
+
+        private void TxtSearch_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            ViewModel?.TextSearchCommand.Execute(TxtSearch.Text);
         }
     }
 }

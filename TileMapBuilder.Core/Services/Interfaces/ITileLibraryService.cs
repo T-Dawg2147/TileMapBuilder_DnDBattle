@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,9 +10,13 @@ namespace TileMapBuilder.Core.Services.Interfaces
 {
     public interface ITileLibraryService
     {
-        public void RefreshLibrary();
-        public void LoadTileLibrary();
+        ObservableCollection<TileDefinition> AvailableTiles { get; }
 
-        public TileDefinition? GetTileById(string id);
+        void RefreshLibrary();
+        void LoadTileLibrary();
+
+        TileDefinition? GetTileById(string id);
+
+        Dictionary<string, List<TileDefinition>> GetTilesByCategory();
     }
 }

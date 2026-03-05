@@ -16,12 +16,14 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <StackPanel Grid.Row="0" Background="{StaticResource Brush_Background_Control}" Margin="0,0,0,5" Orientation="Horizontal">
+        <StackPanel Grid.Row="0" Background="{StaticResource Brush_Background_Control}" Margin="0,0,0,5">
             <TextBlock Text="🎨 Tile Palette" FontSize="14" FontWeight="Bold" Margin="10,8"/>
-            <Button Content="🔄 Refresh Library" Command="{Binding RefreshLibraryCommand}" 
+            <Button Content="🔄 Refresh Library" 
+                    Command="{Binding RefreshLibraryCommand}" 
                     Margin="5" Padding="5" Style="{StaticResource ToolbarButton}" 
                     HorizontalAlignment="Stretch"/>
-            <Button Content="➕ Import Tiles..." Click="ImportTiles_Click" 
+            <Button Content="➕ Import Tiles..." 
+                    Command="{Binding ImportTilesCommand}" 
                     Margin="5,0,5,5" Padding="5" Style="{StaticResource ToolbarButton}" 
                     HorizontalAlignment="Stretch"/>
         </StackPanel>
@@ -56,7 +58,7 @@
 
         <!-- Tile List (Grouped by Category) -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-            <ItemsControl x:Name="TileList">
+            <ItemsControl ItemsSource="{Binding GroupedTiles}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <!-- Category Group -->
@@ -69,11 +71,12 @@
                                        Foreground="{StaticResource Brush_Accent_Primary}"/>
 
                             <!-- Tiles in Category -->
-                            <ItemsControl ItemsSource="{Binding}">
+                            <ItemsControl ItemsSource="{Binding Tiles}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Button Click="TileItem_Click" 
-                                                Tag="{Binding}"
+                                        <Button Command="{Binding DataContext.SelectTileCommand, 
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
                                                 Margin="2"
                                                 Padding="5"
                                                 Height="80"
@@ -91,7 +94,8 @@
                                                         BorderBrush="{StaticResource Brush_Border_Normal}"
                                                         BorderThickness="1"
                                                         Background="{StaticResource Brush_Background_Dark}">
-                                                    <Image Source="{Binding Converter={StaticResource TileImageConverter}}" 
+                                                    <Image Source="{Binding ImagePath, 
+                                                               Converter={StaticResource TileImageConverter}}" 
                                                            Stretch="UniformToFill"/>
                                                 </Border>
 
@@ -115,9 +119,9 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <!-- Footer Info -->
+        <!-- Footer Info (now data-bound) -->
         <Border Grid.Row="3" Background="{StaticResource Brush_Background_Control}" Padding="10,5">
-            <TextBlock x:Name="StatusText" Text="No tiles available" 
+            <TextBlock Text="{Binding StatusText}" 
                        Style="{StaticResource HintText}"/>
         </Border>
     </Grid>
