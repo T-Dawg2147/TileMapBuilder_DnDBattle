@@ -4,7 +4,8 @@
              Focusable="True">
     <Grid>
         <!-- Main canvas for tile rendering -->
-        <Border x:Name="MapBorder" ClipToBounds="True" 
+        <Border x:Name="MapBorder" 
+                ClipToBounds="True" 
                 Background="{StaticResource Brush_Background_Darkest}">
             <Canvas x:Name="MapCanvas"
                     Background="Transparent"

@@ -15,6 +15,7 @@ namespace TileMapBuilder.App.Views
         public MainWindow()
         {
             InitializeComponent();
+            Loaded += OnLoaded;
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
