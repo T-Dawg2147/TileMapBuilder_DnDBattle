@@ -9,31 +9,34 @@ namespace DnDBattle.Data.Services
 {
     public class UndoManager
     {
-        private readonly Stack<IUndoableAction> _undo = [];
+        private readonly LinkedList<IUndoableAction> _undoList = [];
         private readonly Stack<IUndoableAction> _redo = [];
 
         public event EventHandler? StateChanged;
 
         public readonly int Limit = 100;
 
-        public bool CanUndo => _undo.Count > 0;
+        public bool CanUndo => _undoList.Count > 0;
         public bool CanRedo => _redo.Count > 0;
 
         public void Record(IUndoableAction action, bool performNow = true)
         {
             if (action == null) return;
             if (performNow) action.Do();
-            _undo.Push(action);
+            _undoList.AddLast(action);
 
-            while (_undo.Count > Limit) _undo.Pop();
+            while (_undoList.Count > Limit) 
+                _undoList.RemoveFirst();
+
             _redo.Clear();
             StateChanged?.Invoke(null, EventArgs.Empty);
         }
 
         public void Undo()
         {
-            if (_undo.Count == 0) return;
-            var act = _undo.Pop();
+            if (_undoList.Count == 0) return;
+            var act = _undoList.Last!.Value;
+            _undoList.RemoveLast();
             try { act.Undo(); }
             catch { }
             _redo.Push(act);
@@ -46,13 +49,13 @@ namespace DnDBattle.Data.Services
             var act = _redo.Pop();
             try { act.Do(); }
             catch { }
-            _undo.Push(act);
+            _undoList.AddLast(act);
             StateChanged?.Invoke(null, EventArgs.Empty);
         }
 
         public void Clear()
         {
-            _undo.Clear();
+            _undoList.Clear();
             _redo.Clear();
             StateChanged?.Invoke(null, EventArgs.Empty);
         }

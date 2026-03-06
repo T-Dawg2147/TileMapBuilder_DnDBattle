@@ -17,10 +17,11 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         private readonly UndoManager _undoRedoService; // Will need to remake my only Undo/Redo service, it did NOT work...
 
         public TileMapControlViewModel(
-            ITileLibraryService tileMapLibraryService)
+            ITileLibraryService tileMapLibraryService,
+            UndoManager undoManager)
         {
             _tileLibraryService = tileMapLibraryService;
-            _undoRedoService = new();
+            _undoRedoService = undoManager;
 
             _visibleLayers = new HashSet<TileLayer>()
             {
@@ -57,6 +58,12 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         [ObservableProperty] private bool _isFlipHActive;
         [ObservableProperty] private bool _isFlipVActive;
 
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(StatusText))] private bool _isShiftHeld;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(StatusText))] private bool _isGridVisible = true;
+
         // Non-observable states
         private HashSet<TileLayer> _visibleLayers;
         private FogOfWarState _fogOfWar = new();
@@ -64,8 +71,20 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         private (int X, int Y) _clipboardOrigin;
         private bool _recordingUndo = true;
 
-        public string StatusText =>
-            $"Mode: {CurrentMode} | Tiles: {TileMap?.PlacedTiles.Count ?? 0} | DM View: {(ShowDMView ? "ON" : "OFF")}";
+        public string StatusText
+        {
+            get
+            {
+                var effectiveMode = GetEffectiveMode();
+                var shiftIndicator = IsShiftHeld ? " [SHIFT]" : "";
+                return $"Mode: {effectiveMode}{shiftIndicator} | " +
+                       $"Layer: {ActiveLayer} | " +
+                       $"Tiles: {TileMap?.PlacedTiles.Count ?? 0} | " +
+                       $"Grid: {(IsGridVisible ? "ON" : "OFF")} | " +
+                       $"DM View: {(ShowDMView ? "ON" : "OFF")}";
+            }
+        }
+            
 
         public bool CanUndo => _undoRedoService.CanUndo;
         public bool CanRedo => _undoRedoService.CanRedo;
@@ -80,6 +99,9 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         public event Action<Tile>? TilePropertiesRequested;
 
         public event Action<string, string>? ActionLogged;
+
+        public void RequestMapRenderPublic()
+            => MapRenderRequested?.Invoke();
 
         // Commands
         [RelayCommand] private void SetSelectMode() => CurrentMode = EditMode.Select;
@@ -127,7 +149,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
 
         private void UpdateTransformState()
         {
-            IsRotateActive = CurrentRotation > 0;
+            IsRotateActive = CurrentRotation != 0;
             IsFlipHActive = CurrentFlipH;
             IsFlipVActive = CurrentFlipV;
         }
@@ -146,6 +168,15 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         {
             IsFogOfWarEnabled = !IsFogOfWarEnabled;
             _fogOfWar.IsEnabled = IsFogOfWarEnabled;
+            RequestMapRender();
+        }
+
+        [RelayCommand]
+        private void ToggleGrid()
+        {
+            IsGridVisible = !IsGridVisible;
+            if (TileMap != null)
+                TileMap.ShowGrid = IsGridVisible;
             RequestMapRender();
         }
 
@@ -190,6 +221,18 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             PanY += deltaY;
         }
 
+        private EditMode GetEffectiveMode()
+        {
+            if (!IsShiftHeld) return CurrentMode;
+
+            return CurrentMode switch
+            {
+                EditMode.Paint => EditMode.Erase,
+                EditMode.Erase => EditMode.Paint,
+                _ => CurrentMode
+            };
+        }
+
         /// <summary>
         /// Called by the view when the user clicks/drags on a grid cell.
         /// The view is responsible for converting screen coords to grid coords.
@@ -201,7 +244,9 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             if (gridX < 0 || gridX >= TileMap.Width || gridY < 0 || gridY >= TileMap.Height)
                 return;
 
-            switch (CurrentMode)
+            var mode = GetEffectiveMode();
+
+            switch (mode)
             {
                 case EditMode.Paint:
                     PlaceTileAt(gridX, gridY);
@@ -226,7 +271,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             if (tile != null)
                 TilePropertiesRequested?.Invoke(tile);
             else
-                RemoveTileAt(gridX, gridY);
+                RemoveTileAt(gridX, gridY); // NOTE why...? I do not think i need this anymore
         }
 
         private void PlaceTileAt(int gridX, int gridY)
@@ -314,10 +359,8 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         public (int X, int Y) ScreenToGrid(double screenX, double screenY)
         {
             if (TileMap == null) return (0, 0);
-
             int gridX = (int)(screenX / TileMap.CellSize);
             int gridY = (int)(screenY / TileMap.CellSize);
-
             return (gridX, gridY);
         }
 
@@ -345,7 +388,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             RedoCommand.NotifyCanExecuteChanged();
         }
 
-        // Clipboard
+        #region Clipboard Commands
         [RelayCommand]
         private void CopyAt((int x, int y) positions)
         {
@@ -450,6 +493,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             RequestMapRender();
             ActionLogged?.Invoke("Edit", $"✂️ Cut {tiles.Count} tiles");
         }
+        #endregion
 
         #region Helpers
 

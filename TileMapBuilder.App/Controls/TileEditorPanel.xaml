@@ -1,0 +1,166 @@
+﻿<UserControl x:Class="TileMapBuilder.App.Controls.TileEditorPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:tiles="clr-namespace:DnDBattle.Data.Models.Tiles;assembly=DnDBattle.Data"
+             Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}">
+    
+    <Border Style="{StaticResource ModernPanel}" MinWidth="280" MaxWidth="320">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- ═══════════ HEADER ═══════════ -->
+            <DockPanel Grid.Row="0" Margin="0,0,0,12">
+                <Button DockPanel.Dock="Right" Content="✕" 
+                        Style="{StaticResource GhostButton}"
+                        Command="{Binding CloseCommand}"
+                        ToolTip="Close Panel"
+                        Width="28" Height="28"/>
+                <StackPanel>
+                    <TextBlock Text="Tile Properties" Style="{StaticResource TitleText}"/>
+                    <TextBlock Style="{StaticResource CaptionText}">
+                        <Run Text="Position: "/><Run Text="{Binding TilePositionText, Mode=OneWay}"/>
+                        <Run Text=" | ID: "/><Run Text="{Binding TileIdText, Mode=OneWay}"/>
+                    </TextBlock>
+                </StackPanel>
+            </DockPanel>
+
+            <!-- ═══════════ SCROLLABLE CONTENT ═══════════ -->
+            <ScrollViewer Grid.Row="1" 
+                          VerticalScrollBarVisibility="Auto" 
+                          HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+
+                    <!-- ── Tile Instance Properties ── -->
+                    <TextBlock Text="Placement" Style="{StaticResource SectionHeader}"/>
+                    <Border Style="{StaticResource SectionCard}">
+                        <StackPanel>
+                            <!-- Rotation -->
+                            <StackPanel Style="{StaticResource InputGroup}">
+                                <TextBlock Text="Rotation (degrees)"/>
+                                <TextBox Text="{Binding Rotation, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+
+                            <!-- Flip -->
+                            <CheckBox Content="Flip Horizontal" 
+                                      IsChecked="{Binding FlipHorizontal}"
+                                      Style="{StaticResource ModernCheckBox}"/>
+                            <CheckBox Content="Flip Vertical" 
+                                      IsChecked="{Binding FlipVertical}"
+                                      Style="{StaticResource ModernCheckBox}"
+                                      Margin="0,4,0,0"/>
+
+                            <!-- Z-Index -->
+                            <StackPanel Style="{StaticResource InputGroup}" Margin="0,8,0,0">
+                                <TextBlock Text="Z-Index (leave empty for auto)"/>
+                                <TextBox Text="{Binding ZIndex, UpdateSourceTrigger=PropertyChanged, TargetNullValue=''}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ── Tile Definition Properties ── -->
+                    <TextBlock Text="Tile Definition" Style="{StaticResource SectionHeader}"/>
+                    <Border Style="{StaticResource SectionCard}">
+                        <StackPanel>
+                            <!-- Display Name -->
+                            <StackPanel Style="{StaticResource InputGroup}">
+                                <TextBlock Text="Display Name"/>
+                                <TextBox Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+
+                            <!-- Category -->
+                            <StackPanel Style="{StaticResource InputGroup}">
+                                <TextBlock Text="Category"/>
+                                <TextBox Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+
+                            <!-- Layer -->
+                            <StackPanel Style="{StaticResource InputGroup}">
+                                <TextBlock Text="Layer"/>
+                                <ComboBox ItemsSource="{Binding AvailableLayers}" 
+                                          SelectedItem="{Binding Layer}"
+                                          Style="{StaticResource DarkComboBox}"/>
+                            </StackPanel>
+
+                            <!-- Description -->
+                            <StackPanel Style="{StaticResource InputGroup}">
+                                <TextBlock Text="Description"/>
+                                <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                                         AcceptsReturn="True" 
+                                         TextWrapping="Wrap" 
+                                         Height="60"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ── Gameplay Properties ── -->
+                    <TextBlock Text="Gameplay" Style="{StaticResource SectionHeader}"/>
+                    <Border Style="{StaticResource SectionCard}">
+                        <StackPanel>
+                            <CheckBox Content="Blocks Movement" 
+                                      IsChecked="{Binding BlocksMovement}"
+                                      Style="{StaticResource ModernCheckBox}"/>
+                            <CheckBox Content="Blocks Sight" 
+                                      IsChecked="{Binding BlocksSight}"
+                                      Style="{StaticResource ModernCheckBox}"
+                                      Margin="0,4,0,0"/>
+                            <CheckBox Content="Blocks Light" 
+                                      IsChecked="{Binding BlocksLight}"
+                                      Style="{StaticResource ModernCheckBox}"
+                                      Margin="0,4,0,0"/>
+                            <CheckBox Content="Is Enabled" 
+                                      IsChecked="{Binding IsEnabled}"
+                                      Style="{StaticResource ModernCheckBox}"
+                                      Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ── Appearance ── -->
+                    <TextBlock Text="Appearance" Style="{StaticResource SectionHeader}"/>
+                    <Border Style="{StaticResource SectionCard}">
+                        <StackPanel>
+                            <!-- Tint Color -->
+                            <StackPanel Style="{StaticResource InputGroup}">
+                                <TextBlock Text="Tint Color (hex, e.g. #FFFF0000)"/>
+                                <TextBox Text="{Binding TintColor, UpdateSourceTrigger=PropertyChanged, TargetNullValue=''}"
+                                         MaxLength="9"/>
+                            </StackPanel>
+
+                            <!-- Image Path (read-only) -->
+                            <StackPanel Style="{StaticResource InputGroup}">
+                                <TextBlock Text="Image Path" Foreground="{StaticResource Brush_Text_Disabled}"/>
+                                <TextBox Text="{Binding ImagePath, Mode=OneWay}" IsReadOnly="True"
+                                         Foreground="{StaticResource Brush_Text_Disabled}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ── Notes ── -->
+                    <TextBlock Text="Notes" Style="{StaticResource SectionHeader}"/>
+                    <Border Style="{StaticResource SectionCard}">
+                        <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}"
+                                 AcceptsReturn="True" 
+                                 TextWrapping="Wrap" 
+                                 Height="80"/>
+                    </Border>
+
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- ═══════════ FOOTER BUTTONS ═══════════ -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" 
+                        HorizontalAlignment="Right" Margin="0,12,0,0">
+                <Button Content="Apply" 
+                        Command="{Binding ApplyChangesCommand}" 
+                        Style="{StaticResource AccentButton}"
+                        Margin="0,0,8,0" MinWidth="80"/>
+                <Button Content="Close" 
+                        Command="{Binding CloseCommand}" 
+                        MinWidth="80"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

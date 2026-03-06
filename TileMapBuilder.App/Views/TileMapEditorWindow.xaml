@@ -2,7 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:TileMapBuilder.App.Controls"
-        Background="{StaticResource Brush_Background_Darkest}">
+        Background="{StaticResource Brush_Background_Darkest}"
+        Loaded="OnLoaded">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -21,51 +22,40 @@
                 <MenuItem Header="Export as Image..." Command="{Binding ExportAsImageCommand}"/>
             </MenuItem>
             <MenuItem Header="Edit" Foreground="{StaticResource Brush_Text_Primary}">
-                <!-- These bind to TileMapControlViewModel via the MapControl's DataContext -->
-                <MenuItem Header="Undo" 
-                          Command="{Binding DataContext.UndoCommand, ElementName=MapEditorControl}"
-                          InputGestureText="Ctrl+Z"/>
-                <MenuItem Header="Redo" 
-                          Command="{Binding DataContext.RedoCommand, ElementName=MapEditorControl}"
-                          InputGestureText="Ctrl+Y"/>
+                <MenuItem Header="Undo" InputGestureText="Ctrl+Z" 
+                          Command="{Binding ElementName=MapEditorControl, Path=DataContext.UndoCommand}"/>
+                <MenuItem Header="Redo" InputGestureText="Ctrl+Y" 
+                          Command="{Binding ElementName=MapEditorControl, Path=DataContext.RedoCommand}"/>
             </MenuItem>
             <MenuItem Header="View" Foreground="{StaticResource Brush_Text_Primary}">
+                <MenuItem Header="Toggle Grid" Command="{Binding ToggleGridCommand}"/>
                 <MenuItem Header="Toggle DM View" 
-                          Command="{Binding DataContext.ToggleDMViewCommand, ElementName=MapEditorControl}"/>
-                <MenuItem Header="Toggle Fog of War" 
-                          Command="{Binding DataContext.ToggleFogOfWarCommand, ElementName=MapEditorControl}"/>
+                          Command="{Binding ElementName=MapEditorControl, Path=DataContext.ToggleDMViewCommand}"/>
             </MenuItem>
         </Menu>
 
-        <!-- ═══════════ MAIN CONTENT ═══════════ -->
+        <!-- ═══════════ MAIN CONTENT AREA ═══════════ -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="250" MinWidth="200" MaxWidth="400"/>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="220" MinWidth="180"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <!-- LEFT PANEL: Tile Palette -->
-            <!-- DataContext will be set in code-behind to TilePaletteViewModel -->
+            <!-- Left: Tile Palette -->
             <controls:TilePalettePanel x:Name="PalettePanel" Grid.Column="0"/>
 
-            <!-- Splitter -->
-            <GridSplitter Grid.Column="1" Width="3"
-                          Background="{StaticResource Brush_Border_Normal}"
-                          VerticalAlignment="Stretch"
-                          HorizontalAlignment="Center"/>
+            <!-- Center: Map Canvas -->
+            <controls:TileMapToolbarControl x:Name="MapEditorControl" Grid.Column="1"/>
 
-            <!-- RIGHT PANEL: Map Canvas + Toolbar -->
-            <!-- DataContext will be set in code-behind to TileMapControlViewModel -->
-            <controls:TileMapToolbarControl x:Name="MapEditorControl" Grid.Column="2"/>
+            <!-- Right: Tile Editor Panel (shown when editing a tile) -->
+            <controls:TileEditorPanel x:Name="TileEditorControl" Grid.Column="2"/>
         </Grid>
 
         <!-- ═══════════ STATUS BAR ═══════════ -->
-        <Border Grid.Row="2" Background="{StaticResource Brush_Background_Control}" 
-                Padding="10,4">
-            <TextBlock Text="{Binding DataContext.StatusText, ElementName=MapEditorControl, 
-                             FallbackValue='Ready'}"
-                       Style="{StaticResource HintText}" FontSize="11"/>
+        <Border Grid.Row="2" Background="{StaticResource Brush_Background_Control}" Padding="8,4">
+            <TextBlock x:Name="StatusBarText" Text="{Binding ElementName=MapEditorControl, Path=DataContext.StatusText}" 
+                       Foreground="{StaticResource Brush_Text_Secondary}" FontSize="11"/>
         </Border>
     </Grid>
 </UserControl>

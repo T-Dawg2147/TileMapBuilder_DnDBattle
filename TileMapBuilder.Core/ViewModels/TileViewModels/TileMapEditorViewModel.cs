@@ -26,6 +26,8 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         private static readonly string[] _supportedExtensions = ["*.jpg", "*.jpeg", "*.png", "*.bmp"];
         [ObservableProperty] private string _currentFilePath = string.Empty;
 
+        public event Action<string, bool>? StatusNotification;
+
         public TileMapEditorViewModel(
             ITileMapService mapService,
             IDialogService dialogService,
@@ -64,6 +66,8 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
                     Height = height ?? 50,
                     CellSize = 48
                 };
+
+                StatusNotification?.Invoke($"Created new map: {CurrentMap.Name} ({CurrentMap.Width}x{CurrentMap.Height})", true);
             }
         }
 
@@ -83,6 +87,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             {
                 CurrentMap = map;
                 CurrentFilePath = filePath;
+                StatusNotification?.Invoke($"Loaded: {map.Name}", true);
             }
             else
                 _dialogService.ShowInfo("Error", "Failed to load map.", DialogIcon.Error);
@@ -99,14 +104,12 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
 
             bool success = (await _mapService.SaveMapAsync(CurrentMap, CurrentFilePath)) != null;
 
-            // NOTE Do i really need this method AND SaveMapAs() to display success or error? Pretty sure only SaveMapAs() needs this
-
             // TODO This is a very basic implementation.
             // I would eventually like to be able to write this data to a temp file first to avoid corruptions in the primary file
             if (success)
-                _dialogService.ShowInfo("Success", "Map saved successfully"); // Does i really want this to open a window on save?
+                StatusNotification?.Invoke("Map saved successfully", true);
             else
-                _dialogService.ShowInfo("Error", "Failed to save map.", DialogIcon.Error);
+                StatusNotification?.Invoke("Failed to save map.", false);
         }
 
         [RelayCommand]
@@ -128,9 +131,9 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
                 // TODO This is a very basic implementation.
                 // I would eventually like to be able to write this data to a temp file first to avoid corruptions in the primary file
                 if (success)
-                    _dialogService.ShowInfo("Success", "Map saved successfully"); // Does i really want this to open a window on save?
+                    StatusNotification?.Invoke($"Saved: {Path.GetFileName(filePath)}", true);
                 else
-                    _dialogService.ShowInfo("Error", "Failed to save map.", DialogIcon.Error);
+                    StatusNotification?.Invoke("Failed to save map.", false);
             }
         }
 
@@ -160,7 +163,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             try
             {
                 await _imageExportService.ExportAsAsync(visual, filePath, scale: 2.0);
-                _dialogService.ShowInfo("Export Complete", $"Map exported successfully!\n\nFile: {filePath}");
+                StatusNotification?.Invoke($"Exported: {Path.GetFileName(filePath)}", true);
             }
             catch (Exception ex)
             {

@@ -26,10 +26,24 @@ namespace TileMapBuilder.App.Controls
 
         private bool _isSubscribed = false;
 
+        public event Action<bool>? SaveRequested;
+        public event Action? NewMapRequested;
+        public event Action? OpenMapRequested;
+
         public TileMapToolbarControl()
         {
             InitializeComponent();
             DataContextChanged += OnDataContextChanged;
+
+            Loaded += (s, e) =>
+            {
+                var window = Window.GetWindow(this);
+                if (window != null)
+                {
+                    window.PreviewKeyDown += OnWindowKeyDown;
+                    window.PreviewKeyUp += OnWindowKeyUp;
+                }
+            };
         }
 
         private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -54,6 +68,111 @@ namespace TileMapBuilder.App.Controls
 
             RenderMap();
         }
+
+        #region Keyboard Commands
+
+        private void OnWindowKeyDown(object sender, KeyEventArgs e)
+        {
+            if (_vm == null) return;
+
+            if (e.OriginalSource is TextBox) return;
+
+            bool ctrl = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control;
+            bool shift = (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift;
+
+            if (e.Key == Key.LeftShift || e.Key == Key.RightShift)
+                _vm.IsShiftHeld = true;
+
+            if (ctrl)
+            {
+                switch (e.Key)
+                {
+                    case Key.Z:
+                        _vm.UndoCommand.Execute(null);
+                        e.Handled = true;
+                        return;
+                    case Key.Y:
+                        _vm.RedoCommand.Execute(null);
+                        e.Handled = true;
+                        return;
+                    case Key.S:
+                        SaveRequested?.Invoke(shift);
+                        e.Handled = true;
+                        return;
+                    case Key.N:
+                        NewMapRequested?.Invoke();
+                        e.Handled = true;
+                        return;
+                    case Key.O:
+                        OpenMapRequested?.Invoke();
+                        e.Handled = true;
+                        return;
+                }
+            }
+
+            switch (e.Key)
+            {
+                case Key.B:
+                    _vm.SetPaintModeCommand.Execute(null);
+                    e.Handled = true;
+                    break;
+                case Key.E:
+                    _vm.SetEraseModeCommand.Execute(null);
+                    e.Handled = true;
+                    break;
+                case Key.Q:
+                    _vm.SetSelectModeCommand.Execute(null);
+                    e.Handled = true;
+                    break;
+                case Key.I:
+                    _vm.SetPropertiesModeCommand.Execute(null);
+                    e.Handled = true;
+                    break;
+                case Key.G:
+                    _vm.ToggleGridCommand.Execute(null);
+                    e.Handled = true;
+                    break;
+                case Key.R:
+                    if (shift)
+                        _vm.RotateLeftCommand.Execute(null);
+                    else
+                        _vm.RotateRightCommand.Execute(null);
+                    e.Handled = true;
+                    break;
+                case Key.H:
+                    _vm.FlipHorizontalCommand.Execute(null);
+                    e.Handled = true;
+                    break;
+                case Key.V when !ctrl:
+                    _vm.FlipVerticalCommand.Execute(null);
+                    e.Handled = true;
+                    break;
+                case Key.X when !ctrl:
+                    _vm.ResetTransformsCommand.Execute(null);
+                    e.Handled = true;
+                    break;
+                case Key.Delete:
+                    _vm.SetEraseModeCommand.Execute(null);
+                    e.Handled = true;
+                    break;
+                case Key.Escape:
+                    _vm.SetSelectModeCommand.Execute(null);
+                    e.Handled = true;
+                    break;
+            }
+        }
+
+        private void OnWindowKeyUp(object sender, KeyEventArgs e)
+        {
+            if (_vm == null) return;
+
+            if (e.Key == Key.LeftShift || e.Key == Key.RightShift)
+            {
+                _vm.IsShiftHeld = false;
+            }
+        }
+
+        #endregion
 
         private void ActiveLayer_Changed(object sender, SelectionChangedEventArgs e)
         {

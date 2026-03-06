@@ -37,6 +37,7 @@ namespace TileMapBuilder.App
             services.AddSingleton<INavigationService, NavigationService>();
             services.AddSingleton<IDialogService, DialogService>();
             services.AddSingleton<IImageExportService, ImageExportService>();
+            services.AddSingleton<DnDBattle.Data.Services.UndoManager>();
 
             // Services - Data (Data interfaces, Data implementations)
             services.AddSingleton<ITileImageCacheService>(sp => TileImageCacheService.Instance);
@@ -55,6 +56,7 @@ namespace TileMapBuilder.App
             services.AddTransient<NewTileMapViewModel>();
             services.AddTransient<TilePaletteViewModel>();
             services.AddTransient<ImportTileViewModel>();
+            services.AddTransient<TileEditorViewModel>();
         }
 
         protected override void OnStartup(StartupEventArgs e)
