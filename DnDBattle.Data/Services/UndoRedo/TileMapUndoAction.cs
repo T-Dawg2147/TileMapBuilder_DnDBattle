@@ -196,4 +196,38 @@ namespace DnDBattle.Data.Services.UndoRedo
             }
         }
     }
+
+    public class TileMoveAction : IUndoableAction
+    {
+        private readonly List<(Tile Tile, int OldX, int OldY)> _movedTiles;
+        private readonly int _deltaX;
+        private readonly int _deltaY;
+
+        public string Description => $"Move {_movedTiles.Count} tile(s) by ({_deltaX}, {_deltaY})";
+
+        public TileMoveAction(List<(Tile Tile, int OldX, int OldY)> movedTiles, int deltaX, int deltaY)
+        {
+            _movedTiles = movedTiles;
+            _deltaX = deltaX;
+            _deltaY = deltaY;
+        }
+
+        public void Do()
+        {
+            foreach (var (tile, oldX, oldY) in _movedTiles)
+            {
+                tile.GridX = oldX + _deltaX;
+                tile.GridY = oldY + _deltaY;
+            }
+        }
+
+        public void Undo()
+        {
+            foreach (var (tile, oldX, oldY) in _movedTiles)
+            {
+                tile.GridX = oldX;
+                tile.GridY = oldY;
+            }
+        }
+    }
 }

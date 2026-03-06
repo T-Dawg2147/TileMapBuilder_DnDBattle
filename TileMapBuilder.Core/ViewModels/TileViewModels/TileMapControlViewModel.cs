@@ -82,8 +82,11 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         [NotifyPropertyChangedFor(nameof(StatusText))] private int _mouseGridY = -1;
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(IsSoloActive))]
-        private TileLayer? _soloedLayer;
+        [NotifyPropertyChangedFor(nameof(IsSoloActive))] private TileLayer? _soloedLayer;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(StatusText))]
+        [NotifyPropertyChangedFor(nameof(HasSelection))] private int _selectedTileCount;
 
         // Non-observable states
         private HashSet<TileLayer> _visibleLayers;
@@ -93,9 +96,15 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         private (int X, int Y) _clipboardOrigin;
         private bool _recordingUndo = true;
 
+        private readonly HashSet<Tile> _selectedTiles = [];
+
         public string ZoomPercentage => $"{ZoomLevel * 100:F0}%";
 
         public bool IsSoloActive => SoloedLayer != null;
+
+        public bool HasSelection => SelectedTileCount > 0;
+
+        public IReadOnlySet<Tile> SelectedTiles => _selectedTiles;
 
         public string StatusText
         {
@@ -125,11 +134,274 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         public event Action<Tile>? TilePropertiesRequested;
 
         public event Action<string, string>? ActionLogged;
+        public event Action? SelectionChanged;
 
         public void RequestMapRenderPublic()
             => MapRenderRequested?.Invoke();
 
-        // Grid Commands
+        #region Selection events
+        public void SelectTile(Tile tile, bool addToSelection = false)
+        {
+            if (!addToSelection)
+                _selectedTiles.Clear();
+
+            _selectedTiles.Add(tile);
+            UpdateSelectionCount();
+        }
+
+        public void DeselectTile(Tile tile)
+        {
+            _selectedTiles.Remove(tile);
+            UpdateSelectionCount();
+        }
+
+        public void ToggleTileSelection(Tile tile)
+        {
+            if (_selectedTiles.Contains(tile))
+                _selectedTiles.Remove(tile);
+            else
+                _selectedTiles.Add(tile);
+            UpdateSelectionCount();
+        }
+
+        [RelayCommand]
+        private void ClearSelection()
+        {
+            if (_selectedTileCount == 0) return;
+            _selectedTiles.Clear();
+            UpdateSelectionCount();
+        }
+
+        [RelayCommand]
+        private void SelectAll()
+        {
+            if (TileMap == null) return;
+            _selectedTiles.Clear();
+            foreach (var tile in TileMap.PlacedTiles)
+                _selectedTiles.Add(tile);
+            UpdateSelectionCount();
+            ActionLogged?.Invoke("Selection", $"Selected all {_selectedTiles.Count} tiles");
+        }
+
+        private void SelectInRect(int minGridX, int minGridY, int maxGridX, int maxGridY, bool addToSelection = false)
+        {
+            if (TileMap == null) return;
+
+            if (!addToSelection)
+                _selectedTiles.Clear();
+
+            foreach (var tile in TileMap.PlacedTiles)
+            {
+                if (tile.GridX >= minGridX && tile.GridX <= maxGridX &&
+                    tile.GridY >= minGridY && tile.GridY <= maxGridY)
+                {
+                    _selectedTiles.Add(tile);
+                }
+
+                UpdateSelectionCount();
+                ActionLogged?.Invoke("Selection", $"Rectangle selected {_selectedTiles.Count} tiles");
+            }
+        }
+
+        private void UpdateSelectionCount()
+        {
+            SelectedTileCount = _selectedTiles.Count;
+            SelectionChanged?.Invoke();
+        }
+        #endregion
+
+        #region Selected bulk operations
+        [RelayCommand]
+        private void DeleteSelected()
+        {
+            if (TileMap == null || _selectedTiles.Count == 0) return;
+
+            var tilesToRemove = _selectedTiles.ToList();
+
+            if (_recordingUndo)
+            {
+                var action = new TileBatchAction(TileMap, new List<Tile>(), tilesToRemove, "Delete Selected");
+            }
+
+            foreach (var tile in tilesToRemove)
+            {
+                TileMap.RemoveTile(tile);
+                TileRemoveVisualRequested?.Invoke(tile);
+            }
+
+            _selectedTiles.Clear();
+            UpdateSelectionCount();
+            RequestMapRender();
+            OnPropertyChanged(nameof(StatusText));
+
+            ActionLogged?.Invoke("Edit", $"Deleted {tilesToRemove.Count} tiles");
+
+            UndoCommand.NotifyCanExecuteChanged();
+            RedoCommand.NotifyCanExecuteChanged();
+        }
+
+        [RelayCommand]
+        private void CopySelected()
+        {
+            if (_selectedTiles.Count == 0)
+            {
+                ActionLogged?.Invoke("Edit", "Nothing selected to copy");
+                return;
+            }
+
+            _clipboard.Clear();
+
+            int minX = _selectedTiles.Min(t => t.GridX);
+            int minY = _selectedTiles.Min(t => t.GridY);
+            _clipboardOrigin = (minX, minY);
+
+            foreach (var tile in _selectedTiles)
+            {
+                _clipboard.Add(new Tile()
+                {
+                    TileDefinitionId = tile.TileDefinitionId,
+                    GridX = tile.GridX,
+                    GridY = tile.GridY,
+                    Rotation = tile.Rotation,
+                    FlipHorizontal = tile.FlipHorizontal,
+                    FlipVertical = tile.FlipVertical,
+                    ZIndex = tile.ZIndex,
+                    Notes = tile.Notes
+                });
+            }
+            ActionLogged?.Invoke("Edit", $"Copied {_clipboard.Count} tiles");
+        }
+
+        [RelayCommand]
+        private void CutSelected()
+        {
+            if (_selectedTiles.Count == 0)
+            {
+                ActionLogged?.Invoke("Edit", "Nothing selected to cut");
+                return;
+            }
+
+            CopySelected();
+
+            var tilesToRemove = _selectedTiles.ToList();
+
+            if (_recordingUndo)
+            {
+                var action = new TileBatchAction(TileMap!, new List<Tile>(), tilesToRemove, "Cut Selected");
+                _undoRedoService.Record(action, performNow: false);
+            }
+
+            foreach (var tile in tilesToRemove)
+            {
+                TileMap!.RemoveTile(tile);
+                TileRemoveVisualRequested?.Invoke(tile);
+            }
+
+            _selectedTiles.Clear();
+            UpdateSelectionCount();
+            RequestMapRender();
+
+            ActionLogged?.Invoke("Edit", $"Cut {tilesToRemove.Count} tiles");
+
+            UndoCommand.NotifyCanExecuteChanged();
+            RedoCommand.NotifyCanExecuteChanged();
+        }
+
+        [RelayCommand]
+        private void PasteAtPosition((int x, int y) target)
+        {
+            if (TileMap == null || _clipboard.Count == 0)
+            {
+                ActionLogged?.Invoke("Edit", "Clipboard is empty");
+                return;
+            }
+
+            var pastedTiles = new List<Tile>();
+
+            foreach (var clipTile in _clipboard)
+            {
+                int offsetX = clipTile.GridX - _clipboardOrigin.X;
+                int offsetY = clipTile.GridY - _clipboardOrigin.Y;
+
+                var newTile = new Tile()
+                {
+                    TileDefinitionId = clipTile.TileDefinitionId,
+                    GridX = target.x + offsetX,
+                    GridY = target.y + offsetY,
+                    Rotation = clipTile.Rotation,
+                    FlipHorizontal = clipTile.FlipHorizontal,
+                    FlipVertical = clipTile.FlipVertical,
+                    ZIndex = clipTile.ZIndex,
+                    Notes = clipTile.Notes
+                };
+
+                if (newTile.GridX >= 0 && newTile.GridX < TileMap.Width &&
+                    newTile.GridY >= 0 && newTile.GridY < TileMap.Height)
+                {
+                    TileMap.AddTile(newTile);
+                    pastedTiles.Add(newTile);
+                }
+            }
+
+            if (_recordingUndo && pastedTiles.Count > 0)
+            {
+                var action = new TileBatchAction(TileMap, pastedTiles, new List<Tile>(), "Paste Tiles");
+                _undoRedoService.Record(action, performNow: false);
+            }
+
+            _selectedTiles.Clear();
+            foreach (var tile in pastedTiles)
+                _selectedTiles.Add(tile);
+            UpdateSelectionCount();
+
+            RequestMapRender();
+            ActionLogged?.Invoke("Edit", $"Pasted {pastedTiles.Count} tiles");
+
+            UndoCommand.NotifyCanExecuteChanged();
+            RedoCommand.NotifyCanExecuteChanged();
+        }
+
+        public void MoveSelected(int deltaX, int deltaY)
+        {
+            if (TileMap == null || _selectedTiles.Count == 0) return;
+
+            foreach (var tile in _selectedTiles)
+            {
+                int newX = tile.GridX + deltaX;
+                int newY = tile.GridY + deltaY;
+                if (newX < 0 || newX >= TileMap.Width || newY < 0 || newY >= TileMap.Height)
+                {
+                    ActionLogged?.Invoke("Edit", "Cannot move selection - would go out of bounds");
+                    return;
+                }
+            }
+
+            var moveData = _selectedTiles
+                .Select(t => (Tile: t, OldX: t.GridX, OldY: t.GridY))
+                .ToList();
+
+            if (_recordingUndo)
+            {
+                var action = new TileMoveAction(moveData, deltaX, deltaY);
+                _undoRedoService.Record(action, performNow: false);
+            }
+
+            foreach (var tile in _selectedTiles)
+            {
+                tile.GridX += deltaY;
+                tile.GridY += deltaY;
+            }
+
+            RequestMapRender();
+            SelectionChanged?.Invoke();
+            OnPropertyChanged(nameof(StatusText));
+
+            UndoCommand.NotifyCanExecuteChanged();
+            RedoCommand.NotifyCanExecuteChanged();
+        }
+        #endregion
+
+        #region Grid Customization Commands
         [RelayCommand]
         private void ToggleGrid()
         {
@@ -155,8 +427,9 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
                 TileMap.GridColor = hexColor;
             RequestMapRender();
         }
+        #endregion
 
-        // Zoom/Pan Commands
+        #region Zoom/Pan Commands
         public void ApplyZoom(double delta)
         {
             double zoomFactor = delta > 0 ? 1.1 : 0.9;
@@ -232,8 +505,9 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
                 MouseGridY = -1;
             }
         }
+        #endregion
 
-        // Edit Mode Commands
+        #region Edit Mode Commands
         [RelayCommand] private void SetSelectMode() => CurrentMode = EditMode.Select;
         [RelayCommand] private void SetPaintMode() => CurrentMode = EditMode.Paint;
         [RelayCommand] private void SetEraseMode() => CurrentMode = EditMode.Erase;
@@ -283,8 +557,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             IsFlipHActive = CurrentFlipH;
             IsFlipVActive = CurrentFlipV;
         }
-
-        // =============================================
+        #endregion
 
         [RelayCommand]
         private void ToggleDMView()
@@ -350,6 +623,11 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             if (SoloedLayer == layer)
             {
                 SoloedLayer = null;
+                ActionLogged?.Invoke("Layers", $"Solo mode disabled");
+            }
+            else
+            {
+                SoloedLayer = layer;
                 ActionLogged?.Invoke("Layers", $"Solo: {layer}");
             }
             RequestMapRender();
@@ -407,6 +685,9 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
 
             switch (mode)
             {
+                case EditMode.Select:
+                    HandleSelectClick(gridX, gridY);
+                    break;
                 case EditMode.Paint:
                     PlaceTileAt(gridX, gridY);
                     break;
@@ -419,6 +700,33 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
                         TilePropertiesRequested?.Invoke(tile);
                     break;
             }
+        }
+
+        private void HandleSelectClick(int gridX, int gridY)
+        {
+            var tile = GetTileAt(gridX, gridY);
+            if (tile == null)
+            {
+                ClearSelection();
+                return;
+            }
+            SelectTile(tile, addToSelection: false);
+        }
+
+        private void HandleSelectClick(int gridX, int gridY, bool shiftHeld)
+        {
+            var tile = GetTileAt(gridX, gridY);
+            if (tile == null)
+            {
+                if (!shiftHeld)
+                    ClearSelection();
+                return;
+            }
+
+            if (shiftHeld)
+                ToggleTileSelection(tile);
+            else
+                SelectTile(tile, addToSelection: false);
         }
 
         /// <summary>
@@ -522,6 +830,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             return (gridX, gridY);
         }
 
+        #region Undo/Redo
         [RelayCommand(CanExecute = nameof(CanUndo))]
         private void Undo()
         {
@@ -545,6 +854,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             UndoCommand.NotifyCanExecuteChanged();
             RedoCommand.NotifyCanExecuteChanged();
         }
+        #endregion
 
         #region Clipboard Commands
         [RelayCommand]
@@ -667,8 +977,19 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
                 GridColor = value.GridColor;
             }
 
+            _selectedTiles.Clear();
+            UpdateSelectionCount();
             RequestMapRender();
             OnPropertyChanged(nameof(StatusText));
+        }
+
+        private void OnCurrentModeChanged(EditMode value)
+        {
+            if (value != EditMode.Select && _selectedTiles.Count > 0)
+            {
+                _selectedTiles.Clear();
+                UpdateSelectionCount();
+            }
         }
         #endregion
     }
