@@ -54,6 +54,7 @@ namespace TileMapBuilder.App
             services.AddTransient<TileMapControlViewModel>();
             services.AddTransient<NewTileMapViewModel>();
             services.AddTransient<TilePaletteViewModel>();
+            services.AddTransient<ImportTileViewModel>();
         }
 
         protected override void OnStartup(StartupEventArgs e)

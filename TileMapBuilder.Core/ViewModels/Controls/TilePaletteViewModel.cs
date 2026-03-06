@@ -124,19 +124,15 @@ namespace TileMapBuilder.Core.ViewModels.Controls
         {
             try
             {
-                var filePaths = _dialogService.ShowOpenFileDialog(
-                    "Image Files (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg",
-                    "Import Tile Images");
+                if (!_dialogService.ShowImportTileDialog(out var filePaths, out var category))
+                    return;
 
-
-                if (filePaths == null) return;
-
-                int imported = await ImportFileToLibraryAsync([filePaths]);
+                int imported = await ImportFileToLibraryAsync(filePaths, category);
 
                 if (imported > 0)
                 {
                     _dialogService.ShowInfo("Import Complete",
-                        $"Successfully imported {imported} tiles(s).");
+                        $"Successfully imported {imported} tile(s) into '{category}'.");
 
                     LoadTiles();
                 }
@@ -149,10 +145,10 @@ namespace TileMapBuilder.Core.ViewModels.Controls
             }
         }
 
-        private async Task<int> ImportFileToLibraryAsync(string[] filePaths)
+        private async Task<int> ImportFileToLibraryAsync(string[] filePaths, string category)
         {
             var tileDir = System.IO.Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory, "Resources", "Tiles", "Imported");
+                AppDomain.CurrentDomain.BaseDirectory, "Resources", "Tiles", category);
 
             Directory.CreateDirectory(tileDir);
 
