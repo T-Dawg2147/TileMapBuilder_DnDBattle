@@ -10,7 +10,7 @@ namespace DnDBattle.Data.Services.TileService
 {
     public sealed class TileLibraryService : ITileLibraryService
     {
-        private static readonly string _supportedFileTypes = "*.png;*.jpg;*.jpeg;*.bmp";
+        private static readonly string[] _supportedExtensions = ["*.png", "*.jpg", "*.jpeg", "*.bmp"];
 
         private readonly ITileImageCacheService? _imageCache;
 
@@ -38,7 +38,10 @@ namespace DnDBattle.Data.Services.TileService
 
             if (!Directory.Exists(_tileDirectory)) return; // SWALLOW
 
-            var imageFiles = Directory.GetFiles(_tileDirectory, _supportedFileTypes, SearchOption.AllDirectories);
+            var imageFiles = _supportedExtensions
+                .SelectMany(ext => Directory.GetFiles(_tileDirectory, ext, SearchOption.AllDirectories))
+                .Distinct()
+                .ToArray();
 
             Debug.WriteLine($"[TileLibrary] Found {imageFiles.Length} tile images");
 

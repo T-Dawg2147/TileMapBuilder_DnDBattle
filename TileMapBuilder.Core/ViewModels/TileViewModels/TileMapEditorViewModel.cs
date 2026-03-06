@@ -23,7 +23,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             ? $"Tile Map Builder - {CurrentMap.Name}"
             : "Tile Map Builder";
 
-        private readonly string _searchPattern = "*.jpg;*.jpeg;*.png;*.bmp";
+        private static readonly string[] _supportedExtensions = ["*.jpg", "*.jpeg", "*.png", "*.bmp"];
         [ObservableProperty] private string _currentFilePath = string.Empty;
 
         public TileMapEditorViewModel(
@@ -43,10 +43,11 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             if (!Directory.Exists(tileResources))
                 Directory.CreateDirectory(tileResources);
 
-            _imageCache.PreloadImages(Directory.EnumerateFiles(
-                Path.Combine(AppContext.BaseDirectory, "Resources", "Tiles"),
-                _searchPattern,
-                SearchOption.AllDirectories));
+            _imageCache.PreloadImages(_supportedExtensions
+                .SelectMany(ext => Directory.EnumerateFiles(
+                    Path.Combine(AppContext.BaseDirectory, "Resources", "Tiles"),
+                    ext,
+                    SearchOption.AllDirectories)));
         }
 
         [RelayCommand]

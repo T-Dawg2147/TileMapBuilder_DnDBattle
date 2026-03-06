@@ -153,7 +153,7 @@ namespace TileMapBuilder.App.Controls
                 GridLayer.Children.Add(new Line()
                 {
                     X1 = 0, Y1 = y * cellSize,
-                    X2 = tileMap.Width, Y2 = y * cellSize,
+                    X2 = tileMap.Width * cellSize, Y2 = y * cellSize,
                     Stroke = gridBrush, StrokeThickness = 1
                 });
             }
@@ -163,7 +163,7 @@ namespace TileMapBuilder.App.Controls
                 GridLayer.Children.Add(new Line()
                 {
                     X1 = x * cellSize, Y1 = 0,
-                    X2 = x * cellSize, Y2 = tileMap.Height,
+                    X2 = x * cellSize, Y2 = tileMap.Height * cellSize,
                     Stroke = gridBrush, StrokeThickness = 1
                 });
             }

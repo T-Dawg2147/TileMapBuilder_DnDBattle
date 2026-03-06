@@ -31,5 +31,7 @@
         void ShowInfo(string title, string message, DialogIcon icon = DialogIcon.Information);
 
         public bool ShowConfirm(string title, string message);
+
+        bool ShowImportTileDialog(out string[] filePaths, out string category);
     }
 }

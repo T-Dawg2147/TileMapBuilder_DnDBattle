@@ -4,7 +4,6 @@ using System.Windows;
 using TileMapBuilder.App.Views.Dialogs;
 using TileMapBuilder.Core.Services.Interfaces;
 using TileMapBuilder.Core.ViewModels.Dialogs;
-
 namespace TileMapBuilder.App.Services
 {
     public class DialogService : IDialogService
@@ -76,5 +75,23 @@ namespace TileMapBuilder.App.Services
 
         public bool ShowConfirm(string title, string message)
             => MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
+
+        public bool ShowImportTileDialog(out string[] filePaths, out string category)
+        {
+            var viewModel = new ImportTileViewModel(this);
+
+            var dialog = new ImportTileDialog()
+            {
+                DataContext = viewModel,
+                Owner = Application.Current.MainWindow
+            };
+
+            var result = dialog.ShowDialog() == true;
+
+            filePaths = result ? viewModel.SelectedFilePaths.ToArray() : [];
+            category = result ? viewModel.SelectedCategory : string.Empty;
+
+            return result;
+        }
     }
 }
