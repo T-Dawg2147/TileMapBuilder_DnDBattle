@@ -62,8 +62,17 @@ namespace TileMapBuilder.App.Services
             return result;
         }
 
-        public void ShowInfo(string title, string message, MessageBoxImage image = MessageBoxImage.Information)
-            => MessageBox.Show(message, title, MessageBoxButton.OK, image);
+        public void ShowInfo(string title, string message, DialogIcon icon = DialogIcon.Information)
+        {
+            var wpfIcon = icon switch
+            {
+                DialogIcon.Warning => MessageBoxImage.Warning,
+                DialogIcon.Error => MessageBoxImage.Error,
+                DialogIcon.Question => MessageBoxImage.Question,
+                _ => MessageBoxImage.Information
+            };
+            MessageBox.Show(message, title, MessageBoxButton.OK, wpfIcon);
+        }
 
         public bool ShowConfirm(string title, string message)
             => MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;

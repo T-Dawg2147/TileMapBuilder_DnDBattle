@@ -1,8 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
-using TileMapBuilder.Core.Models.Tiles.Metadata;
+using DnDBattle.Data.Models.Tiles.Metadata;
 
-namespace TileMapBuilder.Core.Models.Tiles
+namespace DnDBattle.Data.Models.Tiles
 {
     public partial class Tile : ObservableObject
     {

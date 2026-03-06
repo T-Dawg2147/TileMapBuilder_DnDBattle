@@ -17,8 +17,4 @@
     <ProjectReference Include="..\TileMapBuilder.Core\TileMapBuilder.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Services\TileServices\" />
-  </ItemGroup>
-
 </Project>

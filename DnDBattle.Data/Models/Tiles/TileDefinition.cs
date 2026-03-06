@@ -1,12 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Media;
 
-namespace TileMapBuilder.Core.Models.Tiles
+namespace DnDBattle.Data.Models.Tiles
 {
     public sealed partial class TileDefinition : ObservableObject
     {
@@ -25,7 +19,10 @@ namespace TileMapBuilder.Core.Models.Tiles
         public bool BlocksLight { get; set; } = false;
         public bool IsEnabled { get; set; } = true;
 
-        public Color? TintColor { get; set; } = null;
+        /// <summary>
+        /// Tint color as a hex string (e.g., "#FFRRGGBB"). Null means no tint.
+        /// </summary>
+        public string? TintColor { get; set; } = null;
         public TileLayer Layer { get; set; } = TileLayer.Floor;
 
         public override string ToString() => DisplayName ?? ImagePath ?? "Unamed Tile";        

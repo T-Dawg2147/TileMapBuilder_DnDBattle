@@ -1,8 +1,8 @@
 ﻿using System.Globalization;
 using System.Windows.Data;
-using TileMapBuilder.Core.Services.TileService;
+using TileMapBuilder.App.Services;
 
-namespace TileMapBuilder.Core.Converters
+namespace TileMapBuilder.App.Converters
 {
     public sealed class TileImageConverter : IValueConverter
     {

@@ -1,6 +1,4 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using DnDBattle.Data.Enums;
-using System.Windows.Media;
 
 namespace DnDBattle.Data.Models
 {

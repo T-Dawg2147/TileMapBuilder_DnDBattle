@@ -1,13 +1,14 @@
 ﻿using DnDBattle.Data.Enums;
+using DnDBattle.Data.Services.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using TileMapBuilder.App.Services;
-using TileMapBuilder.Core.Models.Tiles;
-using TileMapBuilder.Core.Models.Tiles.Metadata;
-using TileMapBuilder.Core.Services.TileService;
+using DnDBattle.Data.Models.Tiles;
+using DnDBattle.Data.Models.Tiles.Metadata;
 using TileMapBuilder.Core.ViewModels.TileViewModels;
 
 namespace TileMapBuilder.App.Controls
@@ -20,6 +21,7 @@ namespace TileMapBuilder.App.Controls
         private bool _isPanning;
         private Point _lastPanPoint;
         private bool _isPainting;
+        private ITileLibraryService? _tileLibrary;
 
         public TileMapToolbarControl()
         {
@@ -32,6 +34,8 @@ namespace TileMapBuilder.App.Controls
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
             if (_vm == null) return;
+
+            _tileLibrary = App.Services?.GetService<ITileLibraryService>();
 
             _vm.MapRenderRequested += RenderMap;
             _vm.TileDrawRequested += DrawTile;
@@ -170,7 +174,7 @@ namespace TileMapBuilder.App.Controls
             if (_vm?.TileMap == null) return;
             var tileMap = _vm.TileMap;
 
-            var tileDef = TileLibraryService.Instance.GetTileById(tile.TileDefinitionId!);
+            var tileDef = _tileLibrary?.GetTileById(tile.TileDefinitionId!);
             if (tileDef == null) return;
             if (!_vm.IsLayerVisible(tileDef.Layer)) return;
 

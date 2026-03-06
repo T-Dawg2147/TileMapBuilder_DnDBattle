@@ -1,10 +1,11 @@
 ﻿using System.Diagnostics;
 using System.IO;
 using System.Windows.Media.Imaging;
+using DnDBattle.Data.Services.Interfaces;
 
-namespace TileMapBuilder.Core.Services.TileService
+namespace TileMapBuilder.App.Services
 {
-    public sealed class TileImageCacheService
+    public sealed class TileImageCacheService : ITileImageCacheService
     {
         private static readonly Lazy<TileImageCacheService> _instance =
             new Lazy<TileImageCacheService>(() => new TileImageCacheService());
@@ -17,6 +18,15 @@ namespace TileMapBuilder.Core.Services.TileService
 
         public TileImageCacheService() { }
 
+        /// <summary>
+        /// Implements the interface returning object? for platform-agnostic code.
+        /// </summary>
+        object? ITileImageCacheService.GetOrLoadImage(string imagePath)
+            => GetOrLoadImage(imagePath);
+
+        /// <summary>
+        /// WPF-specific overload returning BitmapImage for direct use in the App layer.
+        /// </summary>
         public BitmapImage GetOrLoadImage(string imagePath)
         {
             if (string.IsNullOrWhiteSpace(imagePath))

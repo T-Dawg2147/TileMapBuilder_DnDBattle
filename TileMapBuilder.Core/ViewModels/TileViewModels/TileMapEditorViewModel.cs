@@ -1,10 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.IO;
-using System.Windows;
-using TileMapBuilder.Core.Models.Tiles;
+using DnDBattle.Data.Models.Tiles;
+using DnDBattle.Data.Services.Interfaces;
 using TileMapBuilder.Core.Services.Interfaces;
-using TileMapBuilder.Core.Services.TileService;
 
 namespace TileMapBuilder.Core.ViewModels.TileViewModels
 {
@@ -14,6 +13,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         private readonly IDialogService _dialogService;
         private readonly IMapVisualProvider _mapVisualProvider;
         private readonly IImageExportService _imageExportService;
+        private readonly ITileImageCacheService _imageCache;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(WindowTitle))]
@@ -30,18 +30,20 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             ITileMapService mapService,
             IDialogService dialogService,
             IMapVisualProvider mapVisualProvider,
-            IImageExportService imageExportService)
+            IImageExportService imageExportService,
+            ITileImageCacheService imageCache)
         {
             _dialogService = dialogService;
             _mapService = mapService;
             _mapVisualProvider = mapVisualProvider;
             _imageExportService = imageExportService;
+            _imageCache = imageCache;
 
             var tileResources = Path.Combine(AppContext.BaseDirectory, "Resources", "Tiles");
             if (!Directory.Exists(tileResources))
                 Directory.CreateDirectory(tileResources);
 
-            TileImageCacheService.Instance.PreloadImages(Directory.EnumerateFiles(
+            _imageCache.PreloadImages(Directory.EnumerateFiles(
                 Path.Combine(AppContext.BaseDirectory, "Resources", "Tiles"),
                 _searchPattern,
                 SearchOption.AllDirectories));
@@ -82,7 +84,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
                 CurrentFilePath = filePath;
             }
             else
-                _dialogService.ShowInfo("Error", "Failed to load map.", MessageBoxImage.Error);
+                _dialogService.ShowInfo("Error", "Failed to load map.", DialogIcon.Error);
         }
 
         [RelayCommand]
@@ -103,7 +105,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             if (success)
                 _dialogService.ShowInfo("Success", "Map saved successfully"); // Does i really want this to open a window on save?
             else
-                _dialogService.ShowInfo("Error", "Failed to save map.", MessageBoxImage.Error);
+                _dialogService.ShowInfo("Error", "Failed to save map.", DialogIcon.Error);
         }
 
         [RelayCommand]
@@ -127,7 +129,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
                 if (success)
                     _dialogService.ShowInfo("Success", "Map saved successfully"); // Does i really want this to open a window on save?
                 else
-                    _dialogService.ShowInfo("Error", "Failed to save map.", MessageBoxImage.Error);
+                    _dialogService.ShowInfo("Error", "Failed to save map.", DialogIcon.Error);
             }
         }
 
@@ -136,7 +138,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         {
             if (CurrentMap == null)
             {
-                _dialogService.ShowInfo("Export", "No map to export.", MessageBoxImage.Warning);
+                _dialogService.ShowInfo("Export", "No map to export.", DialogIcon.Warning);
                 return;
             }
 
@@ -150,7 +152,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             var visual = _mapVisualProvider.GetMapVisual();
             if (visual == null)
             {
-                _dialogService.ShowInfo("Export", "Could not access map viusal for export.", MessageBoxImage.Error);
+                _dialogService.ShowInfo("Export", "Could not access map viusal for export.", DialogIcon.Error);
                 return;
             }
 
@@ -161,7 +163,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             }
             catch (Exception ex)
             {
-                _dialogService.ShowInfo("Export Error", ex.Message, MessageBoxImage.Error);
+                _dialogService.ShowInfo("Export Error", ex.Message, DialogIcon.Error);
             }
         }
     }

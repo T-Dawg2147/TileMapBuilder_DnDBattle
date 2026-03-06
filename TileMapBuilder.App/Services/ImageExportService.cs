@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -13,14 +8,17 @@ namespace TileMapBuilder.App.Services
 {
     public sealed class ImageExportService : IImageExportService
     {
-        public async Task ExportAsAsync(Visual visual, string filePath, double scale = 2.0)
+        public async Task ExportAsAsync(object visual, string filePath, double scale = 2.0)
         {
-            if (visual is FrameworkElement fe)
+            if (visual is not Visual wpfVisual)
+                throw new InvalidOperationException("Export visual must be a WPF Visual.");
+
+            if (wpfVisual is FrameworkElement fe)
             {
                 fe.UpdateLayout();
             }
 
-            if (visual is not FrameworkElement element)
+            if (wpfVisual is not FrameworkElement element)
                 throw new InvalidOperationException("Export visual must be a FrameworkElement.");
 
             int width = (int)Math.Ceiling(element.ActualWidth * scale);

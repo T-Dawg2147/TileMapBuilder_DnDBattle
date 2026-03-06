@@ -1,12 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-
-namespace TileMapBuilder.Core.Services.Interfaces
+﻿namespace TileMapBuilder.Core.Services.Interfaces
 {
+    /// <summary>
+    /// Platform-agnostic icon type for dialog messages.
+    /// Maps to MessageBoxImage in WPF implementations.
+    /// </summary>
+    public enum DialogIcon
+    {
+        Information,
+        Warning,
+        Error,
+        Question
+    }
+
     public interface IDialogService
     {
         public bool ShowFolderDialog(out string path);
@@ -23,7 +28,7 @@ namespace TileMapBuilder.Core.Services.Interfaces
         /// <param name="height">The height entered by the user.</param>
         bool ShowNewTileMapDialog(out string mapName, out int? width, out int? height);
 
-        void ShowInfo(string title, string message, MessageBoxImage image = MessageBoxImage.Information);
+        void ShowInfo(string title, string message, DialogIcon icon = DialogIcon.Information);
 
         public bool ShowConfirm(string title, string message);
     }

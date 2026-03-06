@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TileMapBuilder.Core.Models.Tiles.Metadata
+namespace DnDBattle.Data.Models.Tiles.Metadata
 {
     public sealed class SpawnMetadata : TileMetadata
     {
