@@ -1,5 +1,4 @@
-﻿using DnDBattle.Data.Enums;
-using DnDBattle.Data.Services.Interfaces;
+﻿using DnDBattle.Data.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
 using System.Windows.Controls;
@@ -23,16 +22,27 @@ namespace TileMapBuilder.App.Controls
         private bool _isPainting;
         private ITileLibraryService? _tileLibrary;
 
+        private TileMapControlViewModel? _vm;
+
+        private bool _isSubscribed = false;
+
         public TileMapToolbarControl()
         {
             InitializeComponent();
-            Loaded += OnLoaded;
+            DataContextChanged += OnDataContextChanged;
         }
 
-        private TileMapControlViewModel? _vm => DataContext as TileMapControlViewModel;
-
-        private void OnLoaded(object sender, RoutedEventArgs e)
+        private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
+            if (_vm != null && _isSubscribed)
+            {
+                _vm.MapRenderRequested -= RenderMap;
+                _vm.TileDrawRequested -= DrawTile;
+                _vm.TileRemoveVisualRequested -= RemoveTileVisual;
+                _isSubscribed = false;
+            }
+
+            _vm = DataContext as TileMapControlViewModel;
             if (_vm == null) return;
 
             _tileLibrary = App.Services?.GetService<ITileLibraryService>();
@@ -40,6 +50,7 @@ namespace TileMapBuilder.App.Controls
             _vm.MapRenderRequested += RenderMap;
             _vm.TileDrawRequested += DrawTile;
             _vm.TileRemoveVisualRequested += RemoveTileVisual;
+            _isSubscribed = true;
 
             RenderMap();
         }
@@ -48,15 +59,6 @@ namespace TileMapBuilder.App.Controls
         {
             if (CmbActiveLayer.SelectedItem is ComboBoxItem item && item.Tag is string layerName)
                 _vm?.SetActiveLayer(layerName);
-        }
-
-        private void LayerVisibility_Changed(object sender, RoutedEventArgs e)
-        {
-            if (sender is CheckBox cb && cb.Tag is string layerName)
-            {
-                var layer = Enum.Parse<TileLayer>(layerName);
-                _vm?.ToggleLayerVisibilityCommand.Execute(layer);
-            }
         }
 
         private void MapCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -298,6 +300,15 @@ namespace TileMapBuilder.App.Controls
                         MetadataLayer.Children.Add(fogTile);
                     }
                 }
+            }
+        }
+
+        private void LayerVisibility_Changed(object sender, RoutedEventArgs e)
+        {
+            if (sender is CheckBox cb && cb.Tag is string layerName)
+            {
+                var layer = Enum.Parse<TileLayer>(layerName);
+                _vm?.ToggleLayerVisibilityCommand.Execute(layer);
             }
         }
     }
