@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using System.Diagnostics;
 using System.Windows;
 using TileMapBuilder.App.Controls;
 using TileMapBuilder.App.Services;
@@ -12,6 +13,10 @@ namespace TileMapBuilder.App.Views
     /// </summary>
     public partial class MainWindow : Window
     {
+        private bool _isWiredUp = false;
+        private int _wiredUpAttempts = 0;
+        private const int MaxWireUpAttempts = 10;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -20,24 +25,51 @@ namespace TileMapBuilder.App.Views
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+            if (!TryWireUpChildViewModels())
             {
-                WireUpChildViewModels();
-            });
+                Debug.WriteLine("[MainWindow] Visual tree not ready on Loaded, subscribing to LayoutUpdated");
+                LayoutUpdated += OnLayoutUpdated;
+            }
         }
 
-        private void WireUpChildViewModels()
+        private void OnLayoutUpdated(object? sender, EventArgs e)
         {
+            _wiredUpAttempts++;
+
+            if (TryWireUpChildViewModels())
+            {
+                LayoutUpdated -= OnLayoutUpdated;
+                Debug.WriteLine("[MainWindow] Successfully wired up child ViewModels on LayoutUpdated attempt");
+            }
+            else if (_wiredUpAttempts >= MaxWireUpAttempts)
+            {
+                LayoutUpdated -= OnLayoutUpdated;
+                Debug.WriteLine("[MainWindow] WARNING: Failed to wire up child ViewModels after max attempts");
+            }
+        }
+
+        private bool TryWireUpChildViewModels()
+        {
+            if (_isWiredUp) return true;
+
             var palettePanel = FindVisualChild<TilePalettePanel>(this);
             var mapEditor = FindVisualChild<TileMapToolbarControl>(this);
 
-            if (palettePanel == null || mapEditor == null) return;
+            if (palettePanel == null || mapEditor == null)
+            {
+                Debug.WriteLine($"[MainWindow] FindVisualChild: palettePanel={palettePanel != null}, mapEditor={mapEditor != null}");
+                return false;
+            }
 
             var editorVm = DataContext is TileMapBuilder.Core.ViewModels.ShellViewModel shell
                 ? shell.CurrentView as TileMapEditorViewModel
                 : null;
 
-            if (editorVm == null) return;
+            if (editorVm == null)
+            {
+                Debug.WriteLine("[MainWindow] editorVm is null - ShellViewModel.CurrentView not set yet.");
+                return false;
+            }
 
             var mapControlVm = App.Services.GetRequiredService<TileMapControlViewModel>();
             var paletteVm = App.Services.GetRequiredService<TilePaletteViewModel>();
@@ -65,6 +97,10 @@ namespace TileMapBuilder.App.Views
 
             var holder = App.Services.GetRequiredService<MapVisualProviderHolder>();
             holder.SetVisualFactory(() => mapEditor.FindName("MapCanvas") as System.Windows.Media.Visual);
+
+            _isWiredUp = true;
+            Debug.WriteLine("[MainWindow] Child ViewModels wired up successfully");
+            return true;
         }
 
         private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject

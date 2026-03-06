@@ -13,10 +13,10 @@ namespace DnDBattle.Data.Models.Tiles
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
-        [ObservableProperty] private string _name = "Untitled Map";
+        [ObservableProperty] private string _name = "New Map";
 
-        public int Width { get; set; } = 50;
-        public int Height { get; set; } = 50;
+        public int Width { get; set; } = 24;
+        public int Height { get; set; } = 24;
 
         public double CellSize { get; set; } = 48.0; // TODO Need to look into what this relates to?
 
@@ -27,8 +27,14 @@ namespace DnDBattle.Data.Models.Tiles
 
         public string BackgroundColor { get; set; } = "#FF1A1A1A";
         public bool ShowGrid { get; set; } = true;
+        public double GridOpacity { get; set; } = 0.15;
+        public string GridColor { get; set; } = "#FFFFFF";
 
         public int FeetPerSquare { get; set; } = 5;
+
+        public string Description { get; set; } = string.Empty;
+        public string Author { get; set; } = string.Empty;
+        public string EnvironmentType { get; set; } = "Dungeon";
 
         public List<MapNote> Notes { get; set; } = [];
 
@@ -67,18 +73,24 @@ namespace DnDBattle.Data.Models.Tiles
     public sealed class TileMapDto
     {
         public Guid Id { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public int Width { get; set; }
         public int Height { get; set; }
         public double CellSize { get; set; }
-        public string BackgroundColor { get; set; }
+        public string BackgroundColor { get; set; } = "#FF1A1A1A";
         public bool ShowGrid { get; set; }
+        public double GridOpacity { get; set; } = 0.15;
+        public string GridColor { get; set; } = "#FFFFFF";
         public DateTime CreatedDate { get; set; }
         public DateTime ModifiedDate { get; set; }
 
         public List<TileDto> PlacedTiles { get; set; } = [];
 
         public int FeetPerSquare { get; set; } = 5;
+
+        public string Description { get; set; } = string.Empty;
+        public string Author { get; set; } = string.Empty;
+        public string Environment { get; set; } = "Dungeon";
 
         public List<MapNote> Notes { get; set; } = [];
     }

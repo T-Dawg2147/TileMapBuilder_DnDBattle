@@ -28,6 +28,12 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
                 TileLayer.Floor, TileLayer.Terrain, TileLayer.Wall, TileLayer.Door,
                 TileLayer.Furniture, TileLayer.Props, TileLayer.Effects, TileLayer.Roof
             };
+
+            _layerOpacities = new Dictionary<TileLayer, double>();
+            foreach (TileLayer layer in Enum.GetValues<TileLayer>())
+            {
+                _layerOpacities[layer] = 1.0;
+            }
         }
 
         // Pbservable states
@@ -50,7 +56,9 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
 
         [ObservableProperty] private bool _isFogOfWarEnabled;
 
-        [ObservableProperty] private double _zoomLevel = 1.0;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(ZoomPercentage))]
+        [NotifyPropertyChangedFor(nameof(StatusText))] private double _zoomLevel = 1.0;
         [ObservableProperty] private double _panX;
         [ObservableProperty] private double _panY;
 
@@ -64,12 +72,30 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(StatusText))] private bool _isGridVisible = true;
 
+        [ObservableProperty] private double _gridOpacity = 0.15;
+        [ObservableProperty] private string _gridColor = "#FFFFFF";
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(StatusText))] private int _mouseGridX = -1;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(StatusText))] private int _mouseGridY = -1;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsSoloActive))]
+        private TileLayer? _soloedLayer;
+
         // Non-observable states
         private HashSet<TileLayer> _visibleLayers;
+        private Dictionary<TileLayer, double> _layerOpacities;
         private FogOfWarState _fogOfWar = new();
         private List<Tile> _clipboard = [];
         private (int X, int Y) _clipboardOrigin;
         private bool _recordingUndo = true;
+
+        public string ZoomPercentage => $"{ZoomLevel * 100:F0}%";
+
+        public bool IsSoloActive => SoloedLayer != null;
 
         public string StatusText
         {
@@ -84,7 +110,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
                        $"DM View: {(ShowDMView ? "ON" : "OFF")}";
             }
         }
-            
+
 
         public bool CanUndo => _undoRedoService.CanUndo;
         public bool CanRedo => _undoRedoService.CanRedo;
@@ -103,7 +129,111 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         public void RequestMapRenderPublic()
             => MapRenderRequested?.Invoke();
 
-        // Commands
+        // Grid Commands
+        [RelayCommand]
+        private void ToggleGrid()
+        {
+            IsGridVisible = !IsGridVisible;
+            if (TileMap != null)
+                TileMap.ShowGrid = IsGridVisible;
+            RequestMapRender();
+            ActionLogged?.Invoke("View", $"Grid {(IsGridVisible ? "shown" : "hidden")}");
+        }
+
+        public void SetGridOpacity(double opacity)
+        {
+            GridOpacity = Math.Clamp(opacity, 0.0, 1.0);
+            if (TileMap != null)
+                TileMap.GridOpacity = GridOpacity;
+            RequestMapRender();
+        }
+
+        public void SetGridColor(string hexColor)
+        {
+            GridColor = hexColor;
+            if (TileMap != null)
+                TileMap.GridColor = hexColor;
+            RequestMapRender();
+        }
+
+        // Zoom/Pan Commands
+        public void ApplyZoom(double delta)
+        {
+            double zoomFactor = delta > 0 ? 1.1 : 0.9;
+            double newScale = ZoomLevel * zoomFactor;
+            ZoomLevel = Math.Clamp(newScale, 0.25, 4.0);
+        }
+
+        public void SetZoom(double zoom)
+        {
+            ZoomLevel = Math.Clamp(zoom, 0.25, 4.0);
+        }
+
+        public void ApplyPanDelta(double deltaX, double deltaY)
+        {
+            PanX += deltaX;
+            PanY += deltaY;
+        }
+
+        [RelayCommand]
+        private void ActualSize()
+        {
+            ZoomLevel = 1.0;
+            ActionLogged?.Invoke("View", "Zoom set to 100%");
+        }
+
+        [RelayCommand]
+        private void ResetView()
+        {
+            ZoomLevel = 1.0;
+            PanX = 0;
+            PanY = 0;
+            ActionLogged?.Invoke("View", "View reset");
+        }
+
+        public void FitToWindow(double viewportWidth, double viewportHeight)
+        {
+            if (TileMap == null || viewportWidth <= 0 || viewportHeight <= 0) return;
+
+            double mapPixelWidth = TileMap.Width * TileMap.CellSize;
+            double mapPixelHeight = TileMap.Height * TileMap.CellSize;
+
+            double scaleX = viewportWidth / mapPixelWidth;
+            double scaleY = viewportHeight / mapPixelHeight;
+
+            double fitZoom = Math.Min(scaleX, scaleY) * 0.95;
+            ZoomLevel = Math.Clamp(fitZoom, 0.25, 4.0);
+            PanX = 0;
+            PanY = 0;
+
+            ActionLogged?.Invoke("View", $"Fit to window ({ZoomPercentage})");
+        }
+
+        public void UpdateMousePosition(double screenX, double screenY)
+        {
+            if (TileMap == null)
+            {
+                MouseGridX = -1;
+                MouseGridY = -1;
+                return;
+            }
+
+            int gx = (int)(screenX / TileMap.CellSize);
+            int gy = (int)(screenY / TileMap.CellSize);
+
+            if (gx >= 0 && gx < TileMap.Width && gy >= 0 && gy < TileMap.Height)
+            {
+                MouseGridX = gx;
+                MouseGridY = gy;
+            }
+            else
+            {
+                MouseGridX = -1;
+                MouseGridY = -1;
+            }
+        }
+
+        // Edit Mode Commands
         [RelayCommand] private void SetSelectMode() => CurrentMode = EditMode.Select;
         [RelayCommand] private void SetPaintMode() => CurrentMode = EditMode.Paint;
         [RelayCommand] private void SetEraseMode() => CurrentMode = EditMode.Erase;
@@ -171,14 +301,6 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             RequestMapRender();
         }
 
-        [RelayCommand]
-        private void ToggleGrid()
-        {
-            IsGridVisible = !IsGridVisible;
-            if (TileMap != null)
-                TileMap.ShowGrid = IsGridVisible;
-            RequestMapRender();
-        }
 
         public FogOfWarState GetFogOfWarState() => _fogOfWar;
 
@@ -190,9 +312,20 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
 
         // =============================================
 
-        public bool IsLayerVisible(TileLayer layer) => _visibleLayers.Contains(layer);
+        public bool IsLayerVisible(TileLayer layer)
+        {
+            if (SoloedLayer != null)
+                return layer == SoloedLayer;
+
+            return _visibleLayers.Contains(layer);
+        }
 
         public IReadOnlySet<TileLayer> VisibleLayers => _visibleLayers;
+
+        public double GetLayerOpacity(TileLayer layer)
+        {
+            return _layerOpacities.TryGetValue(layer, out var opacity) ? opacity : 1.0;
+        }
 
         [RelayCommand]
         private void ToggleLayerVisibility(TileLayer layer)
@@ -205,21 +338,47 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             RequestMapRender();
         }
 
+        public void SetLayerOpacity(TileLayer layer, double opacity)
+        {
+            _layerOpacities[layer] = Math.Clamp(opacity, 0.0, 1.0);
+            RequestMapRender();
+        }
+
+        [RelayCommand]
+        private void SoloLayer(TileLayer layer)
+        {
+            if (SoloedLayer == layer)
+            {
+                SoloedLayer = null;
+                ActionLogged?.Invoke("Layers", $"Solo: {layer}");
+            }
+            RequestMapRender();
+        }
+
+        [RelayCommand]
+        private void ShowAllLayers()
+        {
+            SoloedLayer = null;
+            foreach (TileLayer layer in Enum.GetValues<TileLayer>())
+            {
+                _visibleLayers.Add(layer);
+                _layerOpacities[layer] = 1.0;
+            }
+            RequestMapRender();
+            ActionLogged?.Invoke("Layers", "All layers visible at 100%");
+        }
+
+        [RelayCommand]
+        private void HideAllLayers()
+        {
+            SoloedLayer = null;
+            _visibleLayers.Clear();
+            RequestMapRender();
+            ActionLogged?.Invoke("Layers", "All layers hidden");
+        }
+
         public void SetActiveLayer(string layerName)
-            => ActiveLayer = Enum.Parse<TileLayer>(layerName);
-
-        public void ApplyZoom(double delta)
-        {
-            double zoomFactor = delta > 0 ? 1.1 : 0.9;
-            double newScale = ZoomLevel * zoomFactor;
-            ZoomLevel = Math.Clamp(newScale, 0.25, 4.0);
-        }
-
-        public void ApplyPanDelta(double deltaX, double deltaY)
-        {
-            PanX += deltaX;
-            PanY += deltaY;
-        }
+            => ActiveLayer = Enum.Parse<TileLayer>(layerName);        
 
         private EditMode GetEffectiveMode()
         {
@@ -347,7 +506,6 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             }
 
             OnPropertyChanged(nameof(StatusText));
-            
             RequestMapRender();
         }
 
@@ -502,6 +660,13 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
 
         partial void OnTileMapChanged(TileMap? value)
         {
+            if (value != null)
+            {
+                IsGridVisible = value.ShowGrid;
+                GridOpacity = value.GridOpacity;
+                GridColor = value.GridColor;
+            }
+
             RequestMapRender();
             OnPropertyChanged(nameof(StatusText));
         }

@@ -27,6 +27,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         [ObservableProperty] private string _currentFilePath = string.Empty;
 
         public event Action<string, bool>? StatusNotification;
+        public event Action<TileMap>? MapLoaded;
 
         public TileMapEditorViewModel(
             ITileMapService mapService,
@@ -64,7 +65,8 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
                     Name = tileMapName ?? "New Map",
                     Width = width ?? 50,
                     Height = height ?? 50,
-                    CellSize = 48
+                    CellSize = 48,
+                    ShowGrid = true
                 };
 
                 StatusNotification?.Invoke($"Created new map: {CurrentMap.Name} ({CurrentMap.Width}x{CurrentMap.Height})", true);
@@ -88,6 +90,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
                 CurrentMap = map;
                 CurrentFilePath = filePath;
                 StatusNotification?.Invoke($"Loaded: {map.Name}", true);
+                MapLoaded?.Invoke(map);
             }
             else
                 _dialogService.ShowInfo("Error", "Failed to load map.", DialogIcon.Error);

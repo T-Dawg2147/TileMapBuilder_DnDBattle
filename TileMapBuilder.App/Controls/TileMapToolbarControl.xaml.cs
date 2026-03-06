@@ -66,6 +66,7 @@ namespace TileMapBuilder.App.Controls
             _vm.TileRemoveVisualRequested += RemoveTileVisual;
             _isSubscribed = true;
 
+            BuildLayerControls();
             RenderMap();
         }
 
@@ -174,6 +175,123 @@ namespace TileMapBuilder.App.Controls
 
         #endregion
 
+        // Grid event handlers
+
+        private void GridToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (_vm == null) return;
+            if (_vm.TileMap != null)
+                _vm.TileMap.ShowGrid = _vm.IsGridVisible;
+            RenderMap();
+        }
+
+        private void GridOpacity_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (_vm == null) return;
+            _vm.SetGridOpacity(e.NewValue);
+        }
+
+        private void GridColor_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is string hexColor && _vm != null)
+            {
+                _vm.SetGridColor(hexColor);
+            }
+        }
+
+        // Zoom event
+
+        private void FitToWindow_Click(object sender, RoutedEventArgs e)
+        {
+            if (_vm == null) return;
+            _vm.FitToWindow(MapBorder.ActualWidth, MapBorder.ActualHeight);
+        }
+
+        // Layer controls
+
+        private void BuildLayerControls()
+        {
+            if (_vm == null) return;
+
+            var panel = new StackPanel();
+
+            foreach (TileLayer layer in Enum.GetValues<TileLayer>())
+            {
+                var layerRow = new StackPanel { Margin = new Thickness(0, 1, 0, 1) };
+
+                var headerRow = new StackPanel { Orientation = Orientation.Horizontal };
+
+                var checkbox = new CheckBox()
+                {
+                    Content = GetLayerEmoji(layer) + " " + layer.ToString(),
+                    IsChecked = _vm.VisibleLayers.Contains(layer),
+                    Tag = layer,
+                    FontSize = 11,
+                    Margin = new Thickness(0, 0, 5, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                checkbox.Checked += LayerVisibility_Changed;
+                checkbox.Unchecked += LayerVisibility_Changed;
+                headerRow.Children.Add(checkbox);
+
+                var soloBtn = new Button()
+                {
+                    Content = "S",
+                    Width = 22,
+                    Height = 20,
+                    FontSize = 9,
+                    Tag = layer,
+                    ToolTip = $"Solo {layer}",
+                    Margin = new Thickness(2, 0, 0, 0)
+                };
+                soloBtn.Click += (s, args) =>
+                {
+                    if (s is Button b && b.Tag is TileLayer l)
+                        _vm.SoloLayerCommand.Execute(l);
+                };
+                headerRow.Children.Add(soloBtn);
+
+                layerRow.Children.Add(headerRow);
+
+                var opacitySlider = new Slider()
+                {
+                    Minimum = 0,
+                    Maximum = 1,
+                    Value = _vm.GetLayerOpacity(layer),
+                    SmallChange = 0.05,
+                    LargeChange = 0.1,
+                    Tag = layer,
+                    Height = 18,
+                    Margin = new Thickness(18, 0, 0, 2)
+                };
+                opacitySlider.ValueChanged += (s, args) =>
+                {
+                    if (s is Slider sl && sl.Tag is TileLayer l)
+                        _vm.SetLayerOpacity(l, args.NewValue);
+                };
+                layerRow.Children.Add(opacitySlider);
+
+                panel.Children.Add(layerRow);
+            }
+
+            LayerControlsList.Items.Clear();
+            LayerControlsList.Items.Add(panel);
+        }
+
+        // NOTE I would quite like to swap out these stinky emojis for images instead eventually. But right now, they work
+        private static string GetLayerEmoji(TileLayer layer) => layer switch
+        {
+            TileLayer.Floor => "🟫",
+            TileLayer.Terrain => "🏔️",
+            TileLayer.Wall => "🧱",
+            TileLayer.Door => "🚪",
+            TileLayer.Furniture => "🪑",
+            TileLayer.Props => "📦",
+            TileLayer.Effects => "✨",
+            TileLayer.Roof => "🏠",
+            _ => "❓"
+        };
+
         private void ActiveLayer_Changed(object sender, SelectionChangedEventArgs e)
         {
             if (CmbActiveLayer.SelectedItem is ComboBoxItem item && item.Tag is string layerName)
@@ -239,6 +357,14 @@ namespace TileMapBuilder.App.Controls
             _vm?.ApplyZoom(e.Delta);
         }
 
+        private void MapCanvas_MouseLeave(object sender, MouseEventArgs e)
+        {
+            if (_vm != null)
+            {
+                _vm.UpdateMousePosition(-1, -1);
+            }
+        }
+
         private void RenderMap()
         {
             if (_vm?.TileMap == null) return;
@@ -266,7 +392,20 @@ namespace TileMapBuilder.App.Controls
 
         private void DrawGrid(TileMap tileMap)
         {
-            var gridBrush = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255));
+            Color gridBaseColor;
+            try
+            {
+                gridBaseColor = (Color)ColorConverter.ConvertFromString(_vm?.GridColor ?? "#FFFFFF");
+            }
+            catch
+            {
+                gridBaseColor = Colors.White;
+            }
+
+            double opacity = _vm?.GridOpacity ?? 0.15;
+            byte alpha = (byte)(255 * Math.Clamp(opacity, 0.0, 1.0));
+            var gridBrush = new SolidColorBrush(Color.FromArgb(alpha, gridBaseColor.R, gridBaseColor.G, gridBaseColor.B));
+
             double cellSize = tileMap.CellSize;
 
             for (int y = 0; y <= tileMap.Height; y++)
@@ -308,7 +447,8 @@ namespace TileMapBuilder.App.Controls
                 Width = tileMap.CellSize,
                 Height = tileMap.CellSize,
                 Stretch = Stretch.Fill,
-                Tag = tile
+                Tag = tile,
+                Opacity = _vm.GetLayerOpacity(tileDef.Layer)
             };
 
             var transform = new TransformGroup();
