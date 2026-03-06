@@ -236,7 +236,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             var tilesToRemove = TileMap.GetTilesAt(gridX, gridY)
                 .Where(t =>
                 {
-                    var def = _tileLibraryService.GetTileById(t.TileDefinitionId);
+                    var def = _tileLibraryService.GetTileById(t.TileDefinitionId!);
                     return def?.Layer == ActiveLayer;
                 })
                 .ToList();
@@ -254,12 +254,12 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             if (_recordingUndo && tilesToRemove.Any())
             {
                 var batchAction = new TileBatchAction(TileMap, new List<Tile> { newTile }, tilesToRemove, "Replace Tile");
-                _undoRedoService.Record(batchAction);
+                _undoRedoService.Record(batchAction, performNow: false);
             }
             else if (_recordingUndo)
             {
                 var action = new TilePlaceAction(TileMap, newTile);
-                _undoRedoService.Record(action);
+                _undoRedoService.Record(action, performNow: false);
             }
 
             foreach (var tile in tilesToRemove)
@@ -286,12 +286,12 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
                 if (tilesToRemove.Count == 1)
                 {
                     var action = new TileRemoveAction(TileMap, tilesToRemove[0]);
-                    _undoRedoService.Record(action);
+                    _undoRedoService.Record(action, performNow: false);
                 }
                 else
                 {
                     var batchAction = new TileBatchAction(TileMap, new List<Tile>(), tilesToRemove, "Remove Tiles");
-                    _undoRedoService.Record(batchAction);
+                    _undoRedoService.Record(batchAction, performNow: false);
                 }
             }
 

@@ -31,7 +31,7 @@ namespace TileMapBuilder.Core.ViewModels.Dialogs
 
         [ObservableProperty] 
         [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))] 
-        private string _fileLocation = string.Empty;
+        private string _fileLocation = Path.Combine(AppContext.BaseDirectory, "Tile Maps");
 
         [ObservableProperty] private int? _width;
         [ObservableProperty] private int? _height;
