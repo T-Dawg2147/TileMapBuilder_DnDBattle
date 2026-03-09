@@ -9,7 +9,7 @@ using TileMapBuilder.Core.Services.Interfaces;
 
 namespace TileMapBuilder.Core.ViewModels.TileViewModels
 {
-    public enum EditMode { Select, Paint, Erase, Properties } // There is 100% more i can add, just all i can think of atm
+    public enum EditMode { Select, Paint, Erase, Properties, Fill, DrawRect, DrawLine }
 
     public partial class TileMapControlViewModel : ObservableObject
     {
@@ -17,11 +17,10 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         private readonly UndoManager _undoRedoService; // Will need to remake my only Undo/Redo service, it did NOT work...
 
         public TileMapControlViewModel(
-            ITileLibraryService tileMapLibraryService,
-            UndoManager undoManager)
+            ITileLibraryService tileMapLibraryService)
         {
             _tileLibraryService = tileMapLibraryService;
-            _undoRedoService = undoManager;
+            _undoRedoService = new();
 
             _visibleLayers = new HashSet<TileLayer>()
             {
@@ -88,6 +87,9 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         [NotifyPropertyChangedFor(nameof(StatusText))]
         [NotifyPropertyChangedFor(nameof(HasSelection))] private int _selectedTileCount;
 
+        [ObservableProperty] private bool _isDrawingShape;
+        [ObservableProperty] private bool _drawRectFilled = false;
+
         // Non-observable states
         private HashSet<TileLayer> _visibleLayers;
         private Dictionary<TileLayer, double> _layerOpacities;
@@ -97,6 +99,9 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         private bool _recordingUndo = true;
 
         private readonly HashSet<Tile> _selectedTiles = [];
+
+        private (int X, int Y) _shapeStartGrid;
+        private List<(int X, int Y)> _currentShapePreview = [];
 
         public string ZoomPercentage => $"{ZoomLevel * 100:F0}%";
 
@@ -126,20 +131,22 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
 
         // Events
         public event Action? MapRenderRequested;
-
         public event Action<Tile>? TileDrawRequested;
-
         public event Action<Tile>? TileRemoveVisualRequested;
-
         public event Action<Tile>? TilePropertiesRequested;
-
         public event Action<string, string>? ActionLogged;
         public event Action? SelectionChanged;
+        public event Action? ShapePreviewChanged;
+
+        public IReadOnlyList<(int X, int Y)> CurrentShapePreview => _currentShapePreview;
 
         public void RequestMapRenderPublic()
             => MapRenderRequested?.Invoke();
 
         #region Selection events
+
+        public bool IsTileSelected(Tile tile) => _selectedTiles.Contains(tile);
+
         public void SelectTile(Tile tile, bool addToSelection = false)
         {
             if (!addToSelection)
@@ -167,7 +174,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         [RelayCommand]
         private void ClearSelection()
         {
-            if (_selectedTileCount == 0) return;
+            if (_selectedTiles.Count == 0) return;
             _selectedTiles.Clear();
             UpdateSelectionCount();
         }
@@ -183,7 +190,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             ActionLogged?.Invoke("Selection", $"Selected all {_selectedTiles.Count} tiles");
         }
 
-        private void SelectInRect(int minGridX, int minGridY, int maxGridX, int maxGridY, bool addToSelection = false)
+        public void SelectInRect(int minGridX, int minGridY, int maxGridX, int maxGridY, bool addToSelection = false)
         {
             if (TileMap == null) return;
 
@@ -512,6 +519,16 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
         [RelayCommand] private void SetPaintMode() => CurrentMode = EditMode.Paint;
         [RelayCommand] private void SetEraseMode() => CurrentMode = EditMode.Erase;
         [RelayCommand] private void SetPropertiesMode() => CurrentMode = EditMode.Properties;
+        [RelayCommand] private void SetFillMode() => CurrentMode = EditMode.Fill;
+        [RelayCommand] private void SetDrawRectMode() => CurrentMode = EditMode.DrawRect;
+        [RelayCommand] private void SetDrawLineMode() => CurrentMode = EditMode.DrawLine;
+
+        [RelayCommand]
+        private void ToggleDrawRectFilled()
+        {
+            DrawRectFilled = !DrawRectFilled;
+            ActionLogged?.Invoke("Tools", $"Rectangle mode: {(DrawRectFilled ? "Filled" : "Outline")}");
+        }
 
         // NOTE I am convinced that i do not need individual methods for each of these, im sure i could normalize them down somehow?
         [RelayCommand]
@@ -573,7 +590,6 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             _fogOfWar.IsEnabled = IsFogOfWarEnabled;
             RequestMapRender();
         }
-
 
         public FogOfWarState GetFogOfWarState() => _fogOfWar;
 
@@ -699,6 +715,9 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
                     if (tile != null)
                         TilePropertiesRequested?.Invoke(tile);
                     break;
+                case EditMode.Fill:
+                    FloodFill(gridX, gridY);
+                    break;
             }
         }
 
@@ -713,7 +732,7 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             SelectTile(tile, addToSelection: false);
         }
 
-        private void HandleSelectClick(int gridX, int gridY, bool shiftHeld)
+        public void HandleSelectClick(int gridX, int gridY, bool shiftHeld)
         {
             var tile = GetTileAt(gridX, gridY);
             if (tile == null)
@@ -727,6 +746,296 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
                 ToggleTileSelection(tile);
             else
                 SelectTile(tile, addToSelection: false);
+        }
+
+        // Fill Tool
+        private void FloodFill(int startX, int startY)
+        {
+            if (TileMap == null || SelectedTileDefinition == null) return;
+
+            bool startHasTile = TileMap.GetTilesAt(startX, startY)
+                .Any(t =>
+                {
+                    var def = _tileLibraryService.GetTileById(t.TileDefinitionId!);
+                    return def?.Layer == ActiveLayer;
+                });
+
+            if (startHasTile) return;
+
+            var visited = new HashSet<(int, int)>();
+            var queue = new Queue<(int X, int Y)>();
+            var placedTiles = new List<Tile>();
+
+            queue.Enqueue((startX, startY));
+            visited.Add((startX, startY));
+
+            while (queue.Count > 0)
+            {
+                var (cx, cy) = queue.Dequeue();
+
+                if (cx < 0 || cx >= TileMap.Width || cy < 9 || cy >= TileMap.Height)
+                    continue;
+
+                bool hasTileOnLayer = TileMap.GetTilesAt(cx, cy)
+                    .Any(t =>
+                    {
+                        var def = _tileLibraryService.GetTileById(t.TileDefinitionId!);
+                        return def?.Layer == ActiveLayer;
+                    });
+
+                if (hasTileOnLayer)
+                    continue;
+
+                var newTile = new Tile()
+                {
+                    TileDefinitionId = SelectedTileDefinition.Id,
+                    GridX = cx,
+                    GridY = cy,
+                    Rotation = CurrentRotation,
+                    FlipHorizontal = CurrentFlipH,
+                    FlipVertical = CurrentFlipV
+                };
+
+                TileMap.AddTile(newTile);
+                placedTiles.Add(newTile);
+
+                (int, int)[] neighbors = [(cx - 1, cy), (cx + 1, cy), (cx, cy - 1), (cx, cy + 1)];
+                foreach (var (nx, ny) in neighbors)
+                {
+                    if (nx >= 0 && nx < TileMap.Width && ny >= 0 && ny < TileMap.Height &&
+                        !visited.Contains((nx, ny)))
+                    {
+                        visited.Add((nx, ny));
+                        queue.Enqueue((nx, ny));
+                    }
+                }
+            }
+
+            if (placedTiles.Count > 0 && _recordingUndo)
+            {
+                var action = new TileBatchAction(TileMap, placedTiles, new List<Tile>(), $"Fill ({placedTiles.Count} tiles)");
+                _undoRedoService.Record(action, performNow: false);
+            }
+
+            RequestMapRender();
+            OnPropertyChanged(nameof(StatusText));
+            ActionLogged?.Invoke("Tools", $"Fille {placedTiles.Count} cells");
+            UndoCommand.NotifyCanExecuteChanged();
+            RedoCommand.NotifyCanExecuteChanged();
+        }
+
+        #region Rect & Line drawing tools
+        public void StartShapeDraw(int gridX, int gridY)
+        {
+            if (TileMap == null || SelectedTileDefinition == null) return;
+
+            _shapeStartGrid = (gridX, gridY);
+            IsDrawingShape = true;
+            _currentShapePreview.Clear();
+            _currentShapePreview.Add((gridX, gridY));
+            ShapePreviewChanged?.Invoke();
+        }
+
+        public void UpdateShapeDraw(int gridX, int gridY, bool shiftHelf = false)
+        {
+            if (!IsDrawingShape || TileMap == null) return;
+
+            gridX = Math.Clamp(gridX, 0, TileMap.Width - 1);
+            gridY = Math.Clamp(gridY, 0, TileMap.Height - 1);
+
+            _currentShapePreview.Clear();
+
+            if (CurrentMode == EditMode.DrawRect)
+            {
+                _currentShapePreview.AddRange(GetRectanglePoints(
+                    _shapeStartGrid.X, _shapeStartGrid.Y, gridX, gridY, DrawRectFilled));
+            }
+            else if (CurrentMode == EditMode.DrawLine)
+            {
+                if (IsShiftHeld)
+                {
+                    int dx = Math.Abs(gridX - _shapeStartGrid.X);
+                    int dy = Math.Abs(gridY - _shapeStartGrid.Y);
+                    if (dx >= dy)
+                        gridY = _shapeStartGrid.Y;
+                    else
+                        gridX = _shapeStartGrid.X;
+                }
+                _currentShapePreview.AddRange(GetLinePoints(
+                    _shapeStartGrid.X, _shapeStartGrid.Y, gridX, gridY));
+            }
+
+            OnPropertyChanged(nameof(StatusText));
+            ShapePreviewChanged?.Invoke();
+        }
+
+        public void FinishShapeDraw()
+        {
+            if (!IsDrawingShape || TileMap == null || SelectedTileDefinition == null)
+            {
+                CancelShapeDraw();
+                return;
+            }
+
+            var placedTiles = new List<Tile>();
+            var removedTiles = new List<Tile>();
+            
+            foreach (var (px, py) in _currentShapePreview)
+            {
+                if (px < 0 || px >= TileMap.Width || py < 0 || py >= TileMap.Height)
+                    continue;
+
+                var existing = TileMap.GetTilesAt(px, py)
+                    .Where(t =>
+                    {
+                        var def = _tileLibraryService.GetTileById(t.TileDefinitionId!);
+                        return def?.Layer == ActiveLayer;
+                    })
+                    .ToList();
+
+                foreach (var ex in existing)
+                {
+                    TileMap.RemoveTile(ex);
+                    removedTiles.Add(ex);
+                }
+
+                var newTile = new Tile()
+                {
+                    TileDefinitionId = SelectedTileDefinition.Id,
+                    GridX = px,
+                    GridY = py,
+                    Rotation = CurrentRotation,
+                    FlipHorizontal = CurrentFlipH,
+                    FlipVertical = CurrentFlipV
+                };
+
+                TileMap.AddTile(newTile);
+                placedTiles.Add(newTile);
+            }
+
+            if (_recordingUndo && (placedTiles.Count > 0 || removedTiles.Count > 0))
+            {
+                string desc = CurrentMode == EditMode.DrawRect
+                    ? $"Draw Rectangle ({placedTiles.Count} tiles)"
+                    : $"Draw Line ({placedTiles.Count} tiles)";
+                var action = new TileBatchAction(TileMap, placedTiles, removedTiles, desc);
+                _undoRedoService.Record(action, performNow: false);
+            }
+
+            IsDrawingShape = false;
+            _currentShapePreview.Clear();
+            ShapePreviewChanged?.Invoke();
+            RequestMapRender();
+            OnPropertyChanged(nameof(StatusText));
+
+            string toolName = CurrentMode == EditMode.DrawRect ? "Rectangle" : "Line";
+            ActionLogged?.Invoke("Tools", $"{toolName}: placed {placedTiles.Count} tiles");
+            UndoCommand.NotifyCanExecuteChanged();
+            RedoCommand.NotifyCanExecuteChanged();
+        }
+
+        public void CancelShapeDraw()
+        {
+            IsDrawingShape = false;
+            _currentShapePreview.Clear();
+            ShapePreviewChanged?.Invoke();
+        }
+
+        private static List<(int X, int Y)> GetRectanglePoints(int x1, int y1, int x2, int y2, bool filled)
+        {
+            var points = new List<(int, int)>();
+            int minX = Math.Min(x1, x2);
+            int maxX = Math.Max(x1, x2);
+            int minY = Math.Min(y1, y2);
+            int maxY = Math.Min(y1, y2);
+
+            for (int x = minX; x <= maxX; x++)
+            {
+                for (int y = minY; y >= maxY; y++)
+                {
+                    if (filled || x == minX || y == minY || y == maxY)
+                    {
+                        points.Add((x, y));
+                    }
+                }
+            }
+            return points;
+        }
+
+        private static List<(int X, int Y)> GetLinePoints(int x1, int y1, int x2, int y2)
+        {
+            var points = new List<(int, int)>();
+
+            int dx = Math.Abs(x2 - x1);
+            int dy = Math.Abs(y2 - y1);
+            int sx = x1 < x2 ? 1 : -1;
+            int sy = y1 < y2 ? 1 : -1;
+            int err = dx - dy;
+
+            int cx = x1;
+            int cy = y1;
+
+            while (true)
+            {
+                points.Add((cx, cy));
+
+                if (cx == x2 && cy == y2)
+                    break;
+
+                int e2 = 2 * err;
+
+                if (e2 > -dy)
+                {
+                    err -= dy;
+                    cx += sx;
+                }
+
+                if (e2 < dx)
+                {
+                    err += dx;
+                    cy += sy;
+                }
+            }
+            return points;
+        }
+
+        #endregion
+
+        // Map Resize
+        public void ResizeMap(int addTop, int addBottom, int addLeft, int addRight)
+        {
+            if (TileMap == null) return;
+
+            int newWidth = TileMap.Width + addLeft + addRight;
+            int newHeight = TileMap.Height + addTop + addBottom;
+
+            if (newWidth < 1 || newHeight < 1)
+            {
+                ActionLogged?.Invoke("Map", "Cannot resize - dimensions must be at least 1x1");
+                return;
+            }
+
+            int oldWidth = TileMap.Width;
+            int oldHeight = TileMap.Height;
+
+            var removedTiles = TileMap.Resize(addTop, addBottom, addLeft, addRight);
+
+            if (_recordingUndo)
+            {
+                var action = new MapResizeAction(TileMap, oldWidth, oldHeight,
+                    addTop, addBottom, addLeft, addRight, removedTiles);
+                _undoRedoService.Record(action, performNow: false);
+            }
+
+            _selectedTiles.Clear();
+            UpdateSelectionCount();
+            RequestMapRender();
+            OnPropertyChanged(nameof(StatusText));
+
+            ActionLogged?.Invoke("Map", $"Resize to {TileMap.Width}x{TileMap.Height}" +
+                (removedTiles.Count > 0 ? $"({removedTiles.Count} tiles removed)" : ""));
+            UndoCommand.NotifyCanExecuteChanged();
+            RedoCommand.NotifyCanExecuteChanged();
         }
 
         /// <summary>
@@ -784,6 +1093,8 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             TileDrawRequested?.Invoke(newTile);
 
             OnPropertyChanged(nameof(StatusText));
+            UndoCommand.NotifyCanExecuteChanged();
+            RedoCommand.NotifyCanExecuteChanged();
         }
 
         private void RemoveTileAt(int gridX, int gridY)
@@ -815,6 +1126,8 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
 
             OnPropertyChanged(nameof(StatusText));
             RequestMapRender();
+            UndoCommand.NotifyCanExecuteChanged();
+            RedoCommand.NotifyCanExecuteChanged();
         }
 
         public Tile? GetTileAt(int gridX, int gridY)
@@ -960,6 +1273,8 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
 
             RequestMapRender();
             ActionLogged?.Invoke("Edit", $"✂️ Cut {tiles.Count} tiles");
+            UndoCommand.NotifyCanExecuteChanged();
+            RedoCommand.NotifyCanExecuteChanged();
         }
         #endregion
 
@@ -981,15 +1296,6 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
             UpdateSelectionCount();
             RequestMapRender();
             OnPropertyChanged(nameof(StatusText));
-        }
-
-        private void OnCurrentModeChanged(EditMode value)
-        {
-            if (value != EditMode.Select && _selectedTiles.Count > 0)
-            {
-                _selectedTiles.Clear();
-                UpdateSelectionCount();
-            }
         }
         #endregion
     }

@@ -1,5 +1,7 @@
 ﻿using DnDBattle.Data.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
+using System.Diagnostics;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -12,9 +14,6 @@ using TileMapBuilder.Core.ViewModels.TileViewModels;
 
 namespace TileMapBuilder.App.Controls
 {
-    /// <summary>
-    /// Interaction logic for TileMapToolbarControl.xaml
-    /// </summary>
     public partial class TileMapToolbarControl : UserControl
     {
         private bool _isPanning;
@@ -23,27 +22,19 @@ namespace TileMapBuilder.App.Controls
         private ITileLibraryService? _tileLibrary;
 
         private TileMapControlViewModel? _vm;
-
         private bool _isSubscribed = false;
 
-        public event Action<bool>? SaveRequested;
-        public event Action? NewMapRequested;
-        public event Action? OpenMapRequested;
+        // Drag-select state
+        private bool _isDragSelecting;
+        private Point _dragSelectStart;
+        private Rectangle? _dragSelectRect;
+
+        private bool _isShapeDrawing;
 
         public TileMapToolbarControl()
         {
             InitializeComponent();
             DataContextChanged += OnDataContextChanged;
-
-            Loaded += (s, e) =>
-            {
-                var window = Window.GetWindow(this);
-                if (window != null)
-                {
-                    window.PreviewKeyDown += OnWindowKeyDown;
-                    window.PreviewKeyUp += OnWindowKeyUp;
-                }
-            };
         }
 
         private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -53,6 +44,8 @@ namespace TileMapBuilder.App.Controls
                 _vm.MapRenderRequested -= RenderMap;
                 _vm.TileDrawRequested -= DrawTile;
                 _vm.TileRemoveVisualRequested -= RemoveTileVisual;
+                _vm.SelectionChanged -= DrawSelectionHighlights;
+                _vm.ShapePreviewChanged += DrawShapePreview;
                 _isSubscribed = false;
             }
 
@@ -64,119 +57,101 @@ namespace TileMapBuilder.App.Controls
             _vm.MapRenderRequested += RenderMap;
             _vm.TileDrawRequested += DrawTile;
             _vm.TileRemoveVisualRequested += RemoveTileVisual;
+            _vm.SelectionChanged += DrawSelectionHighlights;
+            _vm.ShapePreviewChanged += DrawShapePreview;
             _isSubscribed = true;
 
             BuildLayerControls();
             RenderMap();
         }
 
-        #region Keyboard Commands
-
-        private void OnWindowKeyDown(object sender, KeyEventArgs e)
+        #region Keyboard + Mouse Handlers
+        private void UserControl_KeyDown(object sender, KeyEventArgs e)
         {
             if (_vm == null) return;
 
-            if (e.OriginalSource is TextBox) return;
-
-            bool ctrl = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control;
-            bool shift = (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift;
-
-            if (e.Key == Key.LeftShift || e.Key == Key.RightShift)
-                _vm.IsShiftHeld = true;
-
-            if (ctrl)
-            {
-                switch (e.Key)
-                {
-                    case Key.Z:
-                        _vm.UndoCommand.Execute(null);
-                        e.Handled = true;
-                        return;
-                    case Key.Y:
-                        _vm.RedoCommand.Execute(null);
-                        e.Handled = true;
-                        return;
-                    case Key.S:
-                        SaveRequested?.Invoke(shift);
-                        e.Handled = true;
-                        return;
-                    case Key.N:
-                        NewMapRequested?.Invoke();
-                        e.Handled = true;
-                        return;
-                    case Key.O:
-                        OpenMapRequested?.Invoke();
-                        e.Handled = true;
-                        return;
-                }
-            }
+            bool ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
 
             switch (e.Key)
             {
-                case Key.B:
-                    _vm.SetPaintModeCommand.Execute(null);
-                    e.Handled = true;
-                    break;
-                case Key.E:
-                    _vm.SetEraseModeCommand.Execute(null);
-                    e.Handled = true;
-                    break;
-                case Key.Q:
-                    _vm.SetSelectModeCommand.Execute(null);
-                    e.Handled = true;
-                    break;
-                case Key.I:
-                    _vm.SetPropertiesModeCommand.Execute(null);
-                    e.Handled = true;
-                    break;
-                case Key.G:
-                    _vm.ToggleGridCommand.Execute(null);
-                    e.Handled = true;
-                    break;
-                case Key.R:
-                    if (shift)
-                        _vm.RotateLeftCommand.Execute(null);
-                    else
-                        _vm.RotateRightCommand.Execute(null);
-                    e.Handled = true;
-                    break;
-                case Key.H:
-                    _vm.FlipHorizontalCommand.Execute(null);
-                    e.Handled = true;
-                    break;
-                case Key.V when !ctrl:
-                    _vm.FlipVerticalCommand.Execute(null);
-                    e.Handled = true;
-                    break;
-                case Key.X when !ctrl:
-                    _vm.ResetTransformsCommand.Execute(null);
-                    e.Handled = true;
-                    break;
                 case Key.Delete:
-                    _vm.SetEraseModeCommand.Execute(null);
+                    if (_vm.HasSelection)
+                    {
+                        _vm.DeleteSelectedCommand.Execute(null);
+                        e.Handled = true;
+                    }
+                    break;
+
+                case Key.Escape:
+                    if (_vm.IsDrawingShape)
+                    {
+                        _vm.CancelShapeDraw();
+                        _isShapeDrawing = false;
+                    }
+                    _vm.ClearSelectionCommand.Execute(null);
                     e.Handled = true;
                     break;
-                case Key.Escape:
-                    _vm.SetSelectModeCommand.Execute(null);
+
+                case Key.A when ctrl:
+                    _vm.SelectAllCommand.Execute(null);
                     e.Handled = true;
+                    break;
+
+                case Key.C when ctrl:
+                    if (_vm.HasSelection)
+                    {
+                        _vm.CopySelectedCommand.Execute(null);
+                        e.Handled = true;
+                    }
+                    break;
+
+                case Key.X when ctrl:
+                    if (_vm.HasSelection)
+                    {
+                        _vm.CutSelectedCommand.Execute(null);
+                        e.Handled = true;
+                    }
+                    break;
+
+                case Key.V when ctrl:
+                    PasteAtCurrentMousePosition();
+                    e.Handled = true;
+                    break;
+
+                case Key.Up:
+                    if (_vm.HasSelection) { _vm.MoveSelected(0, -1); e.Handled = true; }
+                    break;
+                case Key.Down:
+                    if (_vm.HasSelection) { _vm.MoveSelected(0, 1); e.Handled = true; }
+                    break;
+                case Key.Left:
+                    if (_vm.HasSelection) { _vm.MoveSelected(-1, 0); e.Handled = true; }
+                    break;
+                case Key.Right:
+                    if (_vm.HasSelection) { _vm.MoveSelected(1, 0); e.Handled = true; }
                     break;
             }
         }
 
-        private void OnWindowKeyUp(object sender, KeyEventArgs e)
+        private void PasteAtCurrentMousePosition()
         {
             if (_vm == null) return;
 
-            if (e.Key == Key.LeftShift || e.Key == Key.RightShift)
-            {
-                _vm.IsShiftHeld = false;
-            }
+            // Use the current mouse grid position from the VM
+            int gx = _vm.MouseGridX;
+            int gy = _vm.MouseGridY;
+
+            if (gx >= 0 && gy >= 0)
+                _vm.PasteAtPositionCommand.Execute((gx, gy));
         }
 
+        private void PasteAtCursor_Click(object sender, RoutedEventArgs e)
+        {
+            PasteAtCurrentMousePosition();
+        }
         #endregion
 
-        // Grid event handlers
-
+        #region Grid event handlers
         private void GridToggle_Click(object sender, RoutedEventArgs e)
         {
             if (_vm == null) return;
@@ -198,17 +173,38 @@ namespace TileMapBuilder.App.Controls
                 _vm.SetGridColor(hexColor);
             }
         }
+        #endregion
 
-        // Zoom event
-
+        #region Zoom event handlers
         private void FitToWindow_Click(object sender, RoutedEventArgs e)
         {
             if (_vm == null) return;
             _vm.FitToWindow(MapBorder.ActualWidth, MapBorder.ActualHeight);
         }
+        #endregion
 
-        // Layer controls
+        #region Map Resize Handler
+        private void ResizeMap_Click(object sender, RoutedEventArgs e)
+        {
+            if (_vm == null) return;
 
+            if (!int.TryParse(TxtResizeTop.Text, out int top)) top = 0;
+            if (!int.TryParse(TxtResizeBottom.Text, out int bottom)) bottom = 0;
+            if (!int.TryParse(TxtResizeLeft.Text, out int left)) left = 0;
+            if (!int.TryParse(TxtResizeRight.Text, out int right)) right = 0;
+
+            if (top == 0 && bottom == 0 && left == 0 && right == 0) return;
+
+            _vm.ResizeMap(top, bottom, left, right);
+
+            TxtResizeTop.Text = "0";
+            TxtResizeBottom.Text = "0";
+            TxtResizeLeft.Text = "0";
+            TxtResizeRight.Text = "0";
+        }
+        #endregion
+
+        #region Layer controls
         private void BuildLayerControls()
         {
             if (_vm == null) return;
@@ -221,7 +217,7 @@ namespace TileMapBuilder.App.Controls
 
                 var headerRow = new StackPanel { Orientation = Orientation.Horizontal };
 
-                var checkbox = new CheckBox()
+                var checkbox = new CheckBox
                 {
                     Content = GetLayerEmoji(layer) + " " + layer.ToString(),
                     IsChecked = _vm.VisibleLayers.Contains(layer),
@@ -234,7 +230,7 @@ namespace TileMapBuilder.App.Controls
                 checkbox.Unchecked += LayerVisibility_Changed;
                 headerRow.Children.Add(checkbox);
 
-                var soloBtn = new Button()
+                var soloBtn = new Button
                 {
                     Content = "S",
                     Width = 22,
@@ -253,7 +249,7 @@ namespace TileMapBuilder.App.Controls
 
                 layerRow.Children.Add(headerRow);
 
-                var opacitySlider = new Slider()
+                var opacitySlider = new Slider
                 {
                     Minimum = 0,
                     Maximum = 1,
@@ -278,7 +274,6 @@ namespace TileMapBuilder.App.Controls
             LayerControlsList.Items.Add(panel);
         }
 
-        // NOTE I would quite like to swap out these stinky emojis for images instead eventually. But right now, they work
         private static string GetLayerEmoji(TileLayer layer) => layer switch
         {
             TileLayer.Floor => "🟫",
@@ -291,6 +286,11 @@ namespace TileMapBuilder.App.Controls
             TileLayer.Roof => "🏠",
             _ => "❓"
         };
+        #endregion
+
+        // =============================================
+        // Mouse handlers (with drag-select support)
+        // =============================================
 
         private void ActiveLayer_Changed(object sender, SelectionChangedEventArgs e)
         {
@@ -302,10 +302,26 @@ namespace TileMapBuilder.App.Controls
         {
             if (_vm == null) return;
 
+            this.Focus();
+
             if (Keyboard.Modifiers == ModifierKeys.Control)
             {
                 _isPanning = true;
-                _lastPanPoint = e.GetPosition(MapCanvas);
+                _lastPanPoint = e.GetPosition(MapBorder);
+                MapCanvas.CaptureMouse();
+            }
+            else if (_vm.CurrentMode == EditMode.Select)
+            {
+                _isDragSelecting = true;
+                _dragSelectStart = e.GetPosition(MapCanvas);
+                MapCanvas.CaptureMouse();
+            }
+            else if (_vm.CurrentMode == EditMode.DrawRect || _vm.CurrentMode == EditMode.DrawLine)
+            {
+                var pos = e.GetPosition(MapCanvas);
+                var grid = _vm.ScreenToGrid(pos.X, pos.Y);
+                _vm.StartShapeDraw(grid.X, grid.Y);
+                _isShapeDrawing = true;
                 MapCanvas.CaptureMouse();
             }
             else
@@ -322,12 +338,26 @@ namespace TileMapBuilder.App.Controls
         {
             if (_vm == null) return;
 
+            var canvasPos = e.GetPosition(MapCanvas);
+            _vm.UpdateMousePosition(canvasPos.X, canvasPos.Y);
+
             if (_isPanning)
             {
                 var current = e.GetPosition(MapBorder);
                 var delta = current - _lastPanPoint;
                 _vm.ApplyPanDelta(delta.X, delta.Y);
                 _lastPanPoint = current;
+            }
+            else if (_isDragSelecting)
+            {
+                // Draw/update the selection rectangle
+                UpdateDragSelectRect(canvasPos);
+            }
+            else if (_isShapeDrawing)
+            {
+                var grid = _vm.ScreenToGrid(canvasPos.X, canvasPos.Y);
+                bool shiftHeld = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+                _vm.UpdateShapeDraw(grid.X, grid.Y, shiftHeld);
             }
             else if (_isPainting && e.LeftButton == MouseButtonState.Pressed)
             {
@@ -339,6 +369,28 @@ namespace TileMapBuilder.App.Controls
 
         private void MapCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
+            if (_vm == null)
+            {
+                _isPanning = false;
+                _isPainting = false;
+                _isDragSelecting = false;
+                _isShapeDrawing = false;
+                MapCanvas.ReleaseMouseCapture();
+                return;
+            }
+
+            if (_isDragSelecting)
+            {
+                var endPos = e.GetPosition(MapCanvas);
+                FinishDragSelect(endPos);
+                _isDragSelecting = false;
+            }
+            else if (_isShapeDrawing)
+            {
+                _vm.FinishShapeDraw();
+                _isShapeDrawing = false;
+            }
+
             _isPanning = false;
             _isPainting = false;
             MapCanvas.ReleaseMouseCapture();
@@ -365,6 +417,146 @@ namespace TileMapBuilder.App.Controls
             }
         }
 
+        // =============================================
+        // Drag-select rectangle
+        // =============================================
+
+        private void UpdateDragSelectRect(Point currentCanvasPos)
+        {
+            var startScreen = MapCanvas.TranslatePoint(_dragSelectStart, SelectionRectCanvas);
+            var endScreen = MapCanvas.TranslatePoint(currentCanvasPos, SelectionRectCanvas);
+
+            double x = Math.Min(startScreen.X, endScreen.X);
+            double y = Math.Min(startScreen.Y, endScreen.Y);
+            double w = Math.Abs(endScreen.X - startScreen.X);
+            double h = Math.Abs(endScreen.Y - startScreen.Y);
+
+            if (_dragSelectRect == null)
+            {
+                _dragSelectRect = new Rectangle
+                {
+                    Stroke = new SolidColorBrush(Color.FromArgb(200, 0, 200, 255)),
+                    StrokeThickness = 2,
+                    StrokeDashArray = new DoubleCollection { 4, 2 },
+                    Fill = new SolidColorBrush(Color.FromArgb(30, 0, 200, 255)),
+                    IsHitTestVisible = false
+                };
+                SelectionRectCanvas.Children.Add(_dragSelectRect);
+            }
+
+            Canvas.SetLeft(_dragSelectRect, x);
+            Canvas.SetTop(_dragSelectRect, y);
+            _dragSelectRect.Width = w;
+            _dragSelectRect.Height = h;
+        }
+
+        private void FinishDragSelect(Point endCanvasPos)
+        {
+            if (_dragSelectRect != null)
+            {
+                SelectionRectCanvas.Children.Remove(_dragSelectRect);
+                _dragSelectRect = null;
+            }
+
+            if (_vm?.TileMap == null) return;
+
+            double minX = Math.Min(_dragSelectStart.X, endCanvasPos.X);
+            double minY = Math.Min(_dragSelectStart.Y, endCanvasPos.Y);
+            double maxX = Math.Max(_dragSelectStart.X, endCanvasPos.X);
+            double maxY = Math.Max(_dragSelectStart.Y, endCanvasPos.Y);
+
+            var gridMin = _vm.ScreenToGrid(minX, minY);
+            var gridMax = _vm.ScreenToGrid(maxX, maxY);
+
+            double dragDistance = Math.Abs(endCanvasPos.X - _dragSelectStart.X) +
+                                  Math.Abs(endCanvasPos.Y - _dragSelectStart.Y);
+
+            bool shiftHeld = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+
+            if (dragDistance < 5)
+            {
+                var grid = _vm.ScreenToGrid(endCanvasPos.X, endCanvasPos.Y);
+                _vm.HandleSelectClick(grid.X, grid.Y, shiftHeld);
+            }
+            else
+            {
+                _vm.SelectInRect(gridMin.X, gridMin.Y, gridMax.X, gridMax.Y, addToSelection: shiftHeld);
+            }
+        }
+
+        // =============================================
+        // Selection highlight rendering
+        // =============================================
+
+        private void DrawSelectionHighlights()
+        {
+            SelectionLayer.Children.Clear();
+
+            if (_vm?.TileMap == null) return;
+
+            double cellSize = _vm.TileMap.CellSize;
+            var highlightBrush = new SolidColorBrush(Color.FromArgb(160, 0, 200, 255));
+
+            foreach (var tile in _vm.SelectedTiles)
+            {
+                var border = new Rectangle
+                {
+                    Width = cellSize,
+                    Height = cellSize,
+                    Stroke = highlightBrush,
+                    StrokeThickness = 2,
+                    Fill = new SolidColorBrush(Color.FromArgb(40, 0, 200, 255)),
+                    IsHitTestVisible = false
+                };
+
+                Canvas.SetLeft(border, tile.GridX * cellSize);
+                Canvas.SetTop(border, tile.GridY * cellSize);
+                Canvas.SetZIndex(border, 900);
+
+                SelectionLayer.Children.Add(border);
+            }
+        }
+
+        #region Shape preview rendering
+
+        private void DrawShapePreview()
+        {
+            ShapePreviewLayer.Children.Clear();
+
+            if (_vm?.TileMap == null || _vm.CurrentShapePreview.Count == 0) return;
+
+            double cellSize = _vm.TileMap.CellSize;
+            var previewBrush = new SolidColorBrush(Color.FromArgb(80, 0, 255, 100));
+            var previewStroke = new SolidColorBrush(Color.FromArgb(180, 0, 255, 100));
+
+            foreach (var (px, py) in _vm.CurrentShapePreview)
+            {
+                if (px < 0 || px >= _vm.TileMap.Width || py < 0 || py >= _vm.TileMap.Height)
+                    continue;
+
+                var rect = new Rectangle()
+                {
+                    Width = cellSize,
+                    Height = cellSize,
+                    Fill = previewBrush,
+                    Stroke = previewBrush,
+                    StrokeThickness = 1,
+                    IsHitTestVisible = false
+                };
+
+                Canvas.SetLeft(rect, px * cellSize);
+                Canvas.SetTop(rect, py * cellSize);
+                Canvas.SetZIndex(rect, 800);
+
+                ShapePreviewLayer.Children.Add(rect);
+            }
+        }
+        #endregion
+
+        // =============================================
+        // Rendering
+        // =============================================
+
         private void RenderMap()
         {
             if (_vm?.TileMap == null) return;
@@ -372,12 +564,14 @@ namespace TileMapBuilder.App.Controls
 
             TilesLayer.Children.Clear();
             GridLayer.Children.Clear();
+            SelectionLayer.Children.Clear();
+            ShapePreviewLayer.Children.Clear();
             MetadataLayer.Children.Clear();
 
             MapCanvas.Width = tileMap.Width * tileMap.CellSize;
             MapCanvas.Height = tileMap.Height * tileMap.CellSize;
 
-            if (tileMap.ShowGrid)
+            if (_vm.IsGridVisible)
                 DrawGrid(tileMap);
 
             foreach (var tile in tileMap.PlacedTiles.OrderBy(t => t.ZIndex ?? 0))
@@ -388,6 +582,9 @@ namespace TileMapBuilder.App.Controls
 
             if (_vm.IsFogOfWarEnabled)
                 RenderFogOfWar(tileMap);
+
+            // Redraw selection highlights after a full render
+            DrawSelectionHighlights();
         }
 
         private void DrawGrid(TileMap tileMap)
@@ -412,9 +609,12 @@ namespace TileMapBuilder.App.Controls
             {
                 GridLayer.Children.Add(new Line()
                 {
-                    X1 = 0, Y1 = y * cellSize,
-                    X2 = tileMap.Width * cellSize, Y2 = y * cellSize,
-                    Stroke = gridBrush, StrokeThickness = 1
+                    X1 = 0,
+                    Y1 = y * cellSize,
+                    X2 = tileMap.Width * cellSize,
+                    Y2 = y * cellSize,
+                    Stroke = gridBrush,
+                    StrokeThickness = 1
                 });
             }
 
@@ -422,9 +622,12 @@ namespace TileMapBuilder.App.Controls
             {
                 GridLayer.Children.Add(new Line()
                 {
-                    X1 = x * cellSize, Y1 = 0,
-                    X2 = x * cellSize, Y2 = tileMap.Height * cellSize,
-                    Stroke = gridBrush, StrokeThickness = 1
+                    X1 = x * cellSize,
+                    Y1 = 0,
+                    X2 = x * cellSize,
+                    Y2 = tileMap.Height * cellSize,
+                    Stroke = gridBrush,
+                    StrokeThickness = 1
                 });
             }
         }
@@ -481,7 +684,7 @@ namespace TileMapBuilder.App.Controls
             foreach (var tile in tileMap.PlacedTiles.Where(t => t.HasMetadata))
                 DrawMetadataIndicator(tile);
         }
-        
+
         private void DrawMetadataIndicator(Tile tile)
         {
             if (_vm?.TileMap == null) return;
@@ -564,9 +767,8 @@ namespace TileMapBuilder.App.Controls
 
         private void LayerVisibility_Changed(object sender, RoutedEventArgs e)
         {
-            if (sender is CheckBox cb && cb.Tag is string layerName)
+            if (sender is CheckBox cb && cb.Tag is TileLayer layer)
             {
-                var layer = Enum.Parse<TileLayer>(layerName);
                 _vm?.ToggleLayerVisibilityCommand.Execute(layer);
             }
         }

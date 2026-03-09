@@ -18,7 +18,7 @@ namespace DnDBattle.Data.Models.Tiles
         public int Width { get; set; } = 24;
         public int Height { get; set; } = 24;
 
-        public double CellSize { get; set; } = 48.0; // TODO Need to look into what this relates to?
+        public double CellSize { get; set; } = 48.0;
 
         public ObservableCollection<Tile> PlacedTiles { get; set; } = [];
 
@@ -67,6 +67,37 @@ namespace DnDBattle.Data.Models.Tiles
         {
             PlacedTiles.Remove(tile);
             ModifiedDate = DateTime.UtcNow;
+        }
+
+        public List<Tile> Resize(int addTop, int addBottom, int addLeft, int addRight)
+        {
+            int newWidth = Width + addLeft + addRight;
+            int newHeight = Height + addTop + addBottom;
+
+            if (newWidth < 1 || newHeight < 1)
+                return new List<Tile>();
+
+            if (addTop != 0 || addLeft != 0)
+            {
+                foreach (var tile in PlacedTiles)
+                {
+                    tile.GridX += addLeft;
+                    tile.GridY += addTop;
+                }
+            }
+
+            var removedTiles = PlacedTiles
+                .Where(t => t.GridX < 0 || t.GridX >= newWidth || t.GridY < 0 || t.GridY >= newHeight)
+                .ToList();
+
+            foreach (var tile in removedTiles)
+                PlacedTiles.Remove(tile);
+
+            Width = newWidth;
+            Height = newHeight;
+            ModifiedDate = DateTime.UtcNow;
+
+            return removedTiles;
         }
     }
 

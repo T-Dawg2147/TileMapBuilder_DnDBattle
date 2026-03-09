@@ -30,20 +30,21 @@
                 <Canvas x:Name="GridLayer" />
                 <Canvas x:Name="TilesLayer" />
                 <Canvas x:Name="SelectionLayer" />
+                <Canvas x:Name="ShapePreviewLayer" />
                 <Canvas x:Name="PreviewLayer" />
                 <Canvas x:Name="MetadataLayer" />
             </Canvas>
         </Border>
 
-        <!-- Selection rectangle overlay (drawn on top of everything, in screen space) -->
+        <!-- Selection rectangle overlay (screen space) -->
         <Canvas x:Name="SelectionRectCanvas" IsHitTestVisible="False"/>
 
-        <!-- Floating toolbar panel (scrollable) -->
+        <!-- Floating toolbar panel -->
         <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10"
                 Background="{StaticResource Brush_Background_Control}"
                 BorderBrush="{StaticResource Brush_Border_Normal}"
                 BorderThickness="1" CornerRadius="4" Padding="0"
-                MaxHeight="700">
+                MaxHeight="750">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                           Padding="10">
                 <StackPanel Orientation="Vertical" Width="180">
@@ -58,6 +59,18 @@
                         <Button Content="🔍 Select" Width="80" Margin="2" Command="{Binding SetSelectModeCommand}"/>
                         <Button Content="⚙️ Props" Width="80" Margin="2" Command="{Binding SetPropertiesModeCommand}"/>
                     </StackPanel>
+
+                    <!-- Drawing tools row -->
+                    <StackPanel Orientation="Horizontal" Margin="0,2">
+                        <Button Content="🪣 Fill" Width="52" Margin="2" Command="{Binding SetFillModeCommand}" ToolTip="Flood fill empty cells"/>
+                        <Button Content="📐 Rect" Width="52" Margin="2" Command="{Binding SetDrawRectModeCommand}" ToolTip="Draw rectangle"/>
+                        <Button Content="📏 Line" Width="52" Margin="2" Command="{Binding SetDrawLineModeCommand}" ToolTip="Draw line"/>
+                    </StackPanel>
+
+                    <!-- Rect filled/outline toggle (only relevant in DrawRect mode) -->
+                    <CheckBox Content="Filled rectangle" FontSize="10" Margin="2,3,0,0"
+                              IsChecked="{Binding DrawRectFilled}"
+                              Foreground="{StaticResource Brush_Text_Secondary}"/>
 
                     <Separator Margin="0,8,0,5"/>
 
@@ -81,7 +94,7 @@
 
                     <Separator Margin="0,8,0,5"/>
 
-                    <!-- ═══════════ TRANSFORMS ��══════════ -->
+                    <!-- ═══════════ TRANSFORMS ════════��══ -->
                     <TextBlock Text="🔄 Transform" FontSize="12" FontWeight="Bold" Margin="0,0,0,3"/>
                     <StackPanel Orientation="Horizontal" Margin="0,2">
                         <Button Content="↶" Width="32" Height="32" Margin="2" Command="{Binding RotateLeftCommand}" ToolTip="Rotate Left"/>
@@ -90,6 +103,36 @@
                         <Button Content="⇅" Width="32" Height="32" Margin="2" Command="{Binding FlipVerticalCommand}" ToolTip="Flip Vertical"/>
                         <Button Content="🔄" Width="32" Height="32" Margin="2" Command="{Binding ResetTransformsCommand}" ToolTip="Reset All"/>
                     </StackPanel>
+
+                    <Separator Margin="0,8,0,5"/>
+
+                    <!-- ═══════════ MAP RESIZE ═══════════ -->
+                    <TextBlock Text="📐 Map Resize" FontSize="12" FontWeight="Bold" Margin="0,0,0,3"/>
+                    <Grid Margin="0,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Top:" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,2"/>
+                        <TextBox x:Name="TxtResizeTop" Grid.Row="0" Grid.Column="1" Text="0" Width="40" Height="22" FontSize="10" Margin="0,0,8,2"/>
+                        <TextBlock Grid.Row="0" Grid.Column="2" Text="Bot:" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,2"/>
+                        <TextBox x:Name="TxtResizeBottom" Grid.Row="0" Grid.Column="3" Text="0" Width="40" Height="22" FontSize="10" Margin="0,0,0,2"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Left:" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,2"/>
+                        <TextBox x:Name="TxtResizeLeft" Grid.Row="1" Grid.Column="1" Text="0" Width="40" Height="22" FontSize="10" Margin="0,0,8,2"/>
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="Right:" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,2"/>
+                        <TextBox x:Name="TxtResizeRight" Grid.Row="1" Grid.Column="3" Text="0" Width="40" Height="22" FontSize="10" Margin="0,0,0,2"/>
+                    </Grid>
+                    <Button Content="Resize Map" Margin="2,4,2,0" Padding="4" FontSize="10" 
+                            Click="ResizeMap_Click" HorizontalAlignment="Stretch"
+                            ToolTip="Positive = expand, Negative = shrink"/>
 
                     <Separator Margin="0,8,0,5"/>
 

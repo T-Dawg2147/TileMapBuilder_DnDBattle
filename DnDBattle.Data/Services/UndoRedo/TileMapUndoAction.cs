@@ -230,4 +230,77 @@ namespace DnDBattle.Data.Services.UndoRedo
             }
         }
     }
+
+    public class MapResizeAction : IUndoableAction
+    {
+        private readonly TileMap _map;
+        private readonly int _oldWidth;
+        private readonly int _oldHeight;
+        private readonly int _addTop;
+        private readonly int _addBottom;
+        private readonly int _addLeft;
+        private readonly int _addRight;
+        private readonly List<Tile> _removedTiles;
+
+        public string Description => $"Resize Map to {_map.Width}x{_map.Height}";
+
+        public MapResizeAction(
+            TileMap map,
+            int oldWidth, int oldHeight,
+            int addTop, int addBottom, int addLeft, int addRight,
+            List<Tile> removedTiles)
+        {
+            _map = map;
+            _oldWidth = oldWidth;
+            _oldHeight = oldHeight;
+            _addTop = addTop;
+            _addBottom = addBottom;
+            _addLeft = addLeft;
+            _addRight = addRight;
+            _removedTiles = removedTiles;
+        }
+
+        public void Do()
+        {
+            if (_addTop != 0 || _addLeft != 0)
+            {
+                foreach (var tile in _map.PlacedTiles)
+                {
+                    tile.GridX += _addLeft;
+                    tile.GridY += _addTop;
+                }
+            }
+
+            foreach (var tile in _removedTiles)
+                _map.PlacedTiles.Remove(tile);
+
+            _map.Width = _oldWidth + _addLeft + _addRight;
+            _map.Height = _oldHeight + _addTop + _addBottom;
+        }
+
+        public void Undo()
+        {
+            _map.Width = _oldWidth;
+            _map.Height = _oldHeight;
+
+            if (_addTop != 0 || _addLeft != 0)
+            {
+                foreach (var tile in _map.PlacedTiles)
+                {
+                    tile.GridX -= _addLeft;
+                    tile.GridY -= _addTop;
+                }
+            }
+
+            foreach (var tile in _removedTiles)
+            {
+                if (!_map.PlacedTiles.Contains(tile))
+                {
+                    tile.GridX -= _addLeft;
+                    tile.GridY -= _addTop;
+                    _map.PlacedTiles.Add(tile);
+                }
+            }
+        }
+    }
 }
