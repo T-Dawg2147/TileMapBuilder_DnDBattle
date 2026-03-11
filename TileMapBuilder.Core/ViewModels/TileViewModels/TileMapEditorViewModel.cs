@@ -173,5 +173,42 @@ namespace TileMapBuilder.Core.ViewModels.TileViewModels
                 _dialogService.ShowInfo("Export Error", ex.Message, DialogIcon.Error);
             }
         }
+
+        [RelayCommand]
+        private void EditMapProperties()
+        {
+            if (CurrentMap == null)
+            {
+                _dialogService.ShowInfo("Propertie", "No map is currentyl open.", DialogIcon.Warning);
+                return;
+            }
+
+            if (_dialogService.ShowMapPropertiesDialog(
+                CurrentMap,
+                out string name, out string description, out string author,
+                out string environmentType, out double cellSize, out int feetPerSquare,
+                out string backgroundColor))
+            {
+                bool cellSizeChanged = Math.Abs(CurrentMap.CellSize - cellSize) > 0.01;
+
+                CurrentMap.Name = name;
+                CurrentMap.Description = description;
+                CurrentMap.Author = author;
+                CurrentMap.EnvironmentType = environmentType;
+                CurrentMap.CellSize = cellSize;
+                CurrentMap.FeetPerSquare = feetPerSquare;
+                CurrentMap.BackgroundColor = backgroundColor;
+                CurrentMap.ModifiedDate = DateTime.UtcNow;
+
+                OnPropertyChanged(nameof(WindowTitle));
+
+                if (cellSizeChanged)
+                {
+                    var map = CurrentMap;
+                    CurrentMap = null;
+                    CurrentMap = map;
+                }
+            }
+        }
     }
 }

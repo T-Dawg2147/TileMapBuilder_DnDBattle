@@ -1,4 +1,5 @@
-﻿using DnDBattle.Data.Services;
+﻿using DnDBattle.Data.Models.Tiles;
+using DnDBattle.Data.Services;
 using Microsoft.Win32;
 using System.Windows;
 using TileMapBuilder.App.Views.Dialogs;
@@ -90,6 +91,33 @@ namespace TileMapBuilder.App.Services
 
             filePaths = result ? viewModel.SelectedFilePaths.ToArray() : [];
             category = result ? viewModel.SelectedCategory : string.Empty;
+
+            return result;
+        }
+
+        public bool ShowMapPropertiesDialog(
+            TileMap currentMap,
+            out string name, out string description, out string author,
+            out string environmentType, out double cellSize, out int feetPerSquare,
+            out string backgroundColor)
+        {
+            var viewModel = new MapPropertiesViewModel(currentMap);
+
+            var dialog = new MapPropertiesDialog()
+            {
+                DataContext = viewModel,
+                Owner = Application.Current.MainWindow
+            };
+
+            var result = dialog.ShowDialog() == true;
+
+            name = viewModel.MapName;
+            description = viewModel.Description;
+            author = viewModel.Author;
+            environmentType = viewModel.EnvironmentType;
+            cellSize = viewModel.CellSize;
+            feetPerSquare = viewModel.FeetPerSquare;
+            backgroundColor = viewModel.BackgroundColor;
 
             return result;
         }

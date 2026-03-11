@@ -16,22 +16,25 @@
     {
         public bool ShowFolderDialog(out string path);
 
-        public string? ShowOpenFileDialog(string filter, string title);
-        public string? ShowSaveFileDialog(string filter, string title, string? defaultFileName);
+        string? ShowOpenFileDialog(string filter, string title);
+        string? ShowSaveFileDialog(string filter, string title, string? defaultFileName);
 
         /// <summary>
         /// Opens the "New Tile Map" dialog.
         /// Returns true if the user confirmed, false if they cancelled.
         /// </summary>
-        /// <param name="mapName">The name entered by the user.</param>
-        /// <param name="width">The width entered by the user.</param>
-        /// <param name="height">The height entered by the user.</param>
         bool ShowNewTileMapDialog(out string mapName, out int? width, out int? height);
 
         void ShowInfo(string title, string message, DialogIcon icon = DialogIcon.Information);
 
-        public bool ShowConfirm(string title, string message);
+        bool ShowConfirm(string title, string message);
 
         bool ShowImportTileDialog(out string[] filePaths, out string category);
+
+        bool ShowMapPropertiesDialog(
+            DnDBattle.Data.Models.Tiles.TileMap currentMap,
+            out string name, out string description, out string author,
+            out string environmentType, out double cellSize, out int feetPerSqare,
+            out string backgroundColor);
     }
 }

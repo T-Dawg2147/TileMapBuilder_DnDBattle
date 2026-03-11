@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace DnDBattle.Data.Models.Tiles.Metadata
+﻿namespace DnDBattle.Data.Models.Tiles.Metadata
 {
     public sealed class SpawnMetadata : TileMetadata
     {
@@ -17,6 +11,8 @@ namespace DnDBattle.Data.Models.Tiles.Metadata
         public int SpawnCount { get; set; } = 1;
 
         public int SpawnRadius { get; set; } = 0;
+
+        public SpawnFaction Faction { get; set; } = SpawnFaction.Neutral;
 
         public SpawnTrigger TriggerCondition { get; set; } = SpawnTrigger.Manual;
 
